@@ -1,0 +1,27 @@
+<mat-sidenav-container class="h-dvh">
+  <mat-sidenav class="py-8 w-64" mode="side" [opened]="layoutService.sidenavOpened()">
+    <h1 class="font-bold pl-2 text-2xl">Excel庫存管理</h1>
+    <ul class="mt-8">
+      @for (item of menuItems; track item.route) {
+        <li
+          [ngClass]="{
+            'bg-primary-container border-l-4 text-on-primary-container border-primary':
+              layoutService.page() === item.route,
+            'hover:bg-primary-container hover:text-on-primary-container ':
+              layoutService.page() !== item.route,
+            'transition-all pl-2': true,
+          }"
+        >
+          <a
+            (click)="layoutService.setPage(item.route)"
+            class="flex items-center gap-2 text-lg h-14"
+          >
+            <mat-icon>{{ item.icon }}</mat-icon>
+            <span>{{ item.label }}</span>
+          </a>
+        </li>
+      }
+    </ul>
+  </mat-sidenav>
+  <mat-sidenav-content><ng-content /></mat-sidenav-content>
+</mat-sidenav-container>

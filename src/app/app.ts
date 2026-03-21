@@ -16,6 +16,9 @@ import { ExcelIoService } from './core/services/excel-io.service';
 import { OrderImportService } from './core/services/order-import.service';
 import { StoreService } from './core/services/store.service';
 
+import { Toolbar } from './components/toolbar/toolbar';
+import { Sidenav } from './components/sidenav/sidenav';
+
 @Component({
   selector: 'app-root',
   imports: [
@@ -29,7 +32,8 @@ import { StoreService } from './core/services/store.service';
     MatListModule,
     MatProgressSpinnerModule,
     MatSelectModule,
-    MatToolbarModule,
+    Toolbar,
+    Sidenav,
   ],
   templateUrl: './app.html',
   styleUrl: './app.css',
@@ -41,6 +45,10 @@ export class App {
 
   readonly state = this.#storeService.state;
   readonly isLoaded = this.#storeService.isLoaded;
+  readonly open = signal(false);
+  readonly toggleSidenav = (): void => {
+    this.open.update((v) => !v);
+  };
 
   readonly selectedPlatform = signal<PlatformType>(PlatFormTypes.A);
   readonly busy = signal(false);
