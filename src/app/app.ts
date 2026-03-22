@@ -1,15 +1,15 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
 import { MatChipsModule } from '@angular/material/chips';
+import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatIconModule } from '@angular/material/icon';
 import { MatListModule } from '@angular/material/list';
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
 import { MatSelectModule } from '@angular/material/select';
-import { MatToolbarModule } from '@angular/material/toolbar';
 
 import { PlatformType, PlatFormTypes } from './core/models';
 import { ExcelIoService } from './core/services/excel-io.service';
@@ -19,6 +19,8 @@ import { StoreService } from './core/services/store.service';
 import { Toolbar } from './components/toolbar/toolbar';
 import { Sidenav } from './components/sidenav/sidenav';
 
+import { InitPage } from './pages/init/init.page';
+
 @Component({
   selector: 'app-root',
   imports: [
@@ -27,6 +29,7 @@ import { Sidenav } from './components/sidenav/sidenav';
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
+    MatDialogModule,
     MatFormFieldModule,
     MatIconModule,
     MatListModule,
@@ -42,9 +45,11 @@ export class App {
   readonly #storeService = inject(StoreService);
   readonly #excelIoService = inject(ExcelIoService);
   readonly #orderImportService = inject(OrderImportService);
+  readonly #dialog = inject(MatDialog);
 
   readonly state = this.#storeService.state;
   readonly isLoaded = this.#storeService.isLoaded;
+  private initDialogRef: MatDialogRef<InitPage> | null = null;
   readonly open = signal(false);
   readonly toggleSidenav = (): void => {
     this.open.update((v) => !v);
@@ -54,6 +59,30 @@ export class App {
   readonly busy = signal(false);
   readonly uiMessage = signal<string>('');
   readonly uiError = signal<string>('');
+
+  constructor() {
+    effect(() => {
+      if (this.isLoaded()) {
+        this.initDialogRef?.close();
+        this.initDialogRef = null;
+        return;
+      }
+
+      if (this.initDialogRef) {
+        return;
+      }
+
+      this.initDialogRef = this.#dialog.open(InitPage, {
+        disableClose: true,
+        width: '420px',
+        maxWidth: 'calc(100vw - 32px)',
+      });
+
+      this.initDialogRef.afterClosed().subscribe(() => {
+        this.initDialogRef = null;
+      });
+    });
+  }
 
   readonly canDownloadErrorReport = computed(() => {
     const result = this.state().lastImportResult;

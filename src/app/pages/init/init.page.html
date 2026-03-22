@@ -1,0 +1,28 @@
+<h2 mat-dialog-title>初始化資料</h2>
+
+<mat-dialog-content>
+  <p>建立空白資料或載入 Workbook</p>
+</mat-dialog-content>
+
+<mat-dialog-actions class="gap-2">
+  <button matButton="elevated" color="primary" (click)="createDataset()" [disabled]="busy()">
+    建立空白資料
+  </button>
+
+  <input
+    #systemFileInput
+    type="file"
+    hidden
+    accept=".xlsx,.xls"
+    (change)="handleSystemWorkbookSelected($event)"
+  />
+
+  <button
+    matButton="elevated"
+    color="primary"
+    (click)="systemFileInput.click()"
+    [disabled]="busy()"
+  >
+    載入資料庫 Excel
+  </button>
+</mat-dialog-actions>
