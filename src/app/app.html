@@ -2,83 +2,14 @@
   <app-toolbar [isDirty]="state().dirty.isDirty" [lastSavedAt]="state().meta.lastSavedAt" />
   <main class="pl-4 max-h-[100dvh-64px] py-8 overflow-y-auto overflow-x-hidden">
     @if (isLoaded()) {
-      <section class="grid">
-        <mat-card>
-          <mat-card-header>
-            <mat-card-title>訂單匯入</mat-card-title>
-            <mat-card-subtitle>平台 A/B/C parser + zod 驗證 + 去重</mat-card-subtitle>
-          </mat-card-header>
-
-          <mat-card-content>
-            <mat-form-field appearance="outline" class="full-width">
-              <mat-label>平台</mat-label>
-              <mat-select [ngModel]="selectedPlatform()" (ngModelChange)="setPlatform($event)">
-                <mat-option value="A">平台 A（好蒔光）</mat-option>
-                <mat-option value="B">平台 B（仙姑）</mat-option>
-                <mat-option value="C">平台 C（綠崎）</mat-option>
-              </mat-select>
-            </mat-form-field>
-
-            <div class="button-row">
-              <input
-                #orderFileInput
-                type="file"
-                hidden
-                accept=".xlsx,.xls"
-                (change)="handleOrderWorkbookSelected($event)"
-              />
-              <button
-                mat-raised-button
-                color="primary"
-                (click)="orderFileInput.click()"
-                [disabled]="busy()"
-              >
-                匯入平台訂單
-              </button>
-
-              <button
-                mat-stroked-button
-                (click)="downloadErrorReport()"
-                [disabled]="!canDownloadErrorReport()"
-              >
-                下載錯誤報告
-              </button>
-            </div>
-
-            <div class="result" *ngIf="state().lastImportResult as result">
-              <p>成功：{{ result.importedCount }}</p>
-              <p>重複：{{ result.duplicateCount }}</p>
-              <p>錯誤：{{ result.errorCount }}</p>
-
-              <mat-list *ngIf="result.errors.length > 0">
-                <mat-list-item *ngFor="let error of result.errors | slice: 0 : 8">
-                  第 {{ error.rowNumber }} 列 - {{ error.field }}：{{ error.reason }}
-                </mat-list-item>
-              </mat-list>
-            </div>
-          </mat-card-content>
-        </mat-card>
-
-        <mat-card>
-          <mat-card-header>
-            <mat-card-title>資料摘要</mat-card-title>
-          </mat-card-header>
-
-          <mat-card-content>
-            <mat-list>
-              <mat-list-item *ngFor="let stat of dashboardStats()">
-                {{ stat.label }}：{{ stat.value }}
-              </mat-list-item>
-            </mat-list>
-          </mat-card-content>
-        </mat-card>
-
-        @if (busy()) {
-          <div class="loading">
-            <mat-progress-spinner mode="indeterminate" diameter="40"></mat-progress-spinner>
-          </div>
+      @switch (page()) {
+        @case ('orders') {
+          <page-orders />
         }
-      </section>
+        @default {
+          <page-dashboard />
+        }
+      }
     }
   </main>
 </app-sidenav>

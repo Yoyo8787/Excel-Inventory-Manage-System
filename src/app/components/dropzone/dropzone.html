@@ -1,0 +1,38 @@
+<div
+  [class]="
+    'flex flex-col items-center gap-3 rounded-2xl border border-dashed border-outline bg-surface-container px-6 py-8 text-center transition-colors ' +
+    containerClass()
+  "
+  [class.cursor-pointer]="!disabled()"
+  [class.pointer-events-none]="disabled()"
+  [class.opacity-60]="disabled()"
+  [class.border-primary]="isDragOver()"
+  [class.bg-primary-container]="isDragOver()"
+  (click)="!disabled() && fileInput.click()"
+  (dragover)="handleDragOver($event)"
+  (dragleave)="handleDragLeave()"
+  (drop)="handleDrop($event)"
+>
+  <input
+    #fileInput
+    type="file"
+    hidden
+    [accept]="accept()"
+    [disabled]="disabled()"
+    (change)="handleFileChange($event)"
+  />
+
+  <div class="space-y-1">
+    <mat-icon>cloud_upload</mat-icon>
+    <p class="text-base font-medium text-on-surface">上傳檔案</p>
+    <p class="text-sm text-on-surface/70">
+      {{
+        selectedFileName()
+          ? '已選擇：' + selectedFileName()
+          : isDragOver()
+            ? '放開以上傳檔案'
+            : hint()
+      }}
+    </p>
+  </div>
+</div>

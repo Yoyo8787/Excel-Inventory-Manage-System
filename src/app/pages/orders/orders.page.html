@@ -1,0 +1,79 @@
+<section class="grid grid-cols-3 grid-rows-4 gap-6">
+  <mat-card class="min-w-72">
+    <mat-card-header>
+      <mat-card-title>訂單匯入</mat-card-title>
+    </mat-card-header>
+    <mat-card-content class="space-y-4 mt-4">
+      <mat-form-field class="w-full">
+        <mat-label>選擇平台</mat-label>
+        <mat-select
+          aria-label="平台選擇"
+          [value]="selectedPlatform()"
+          (selectionChange)="setPlatform($event.value)"
+        >
+          <mat-option [value]="PlatFormTypes.A">好蒔光</mat-option>
+          <mat-option [value]="PlatFormTypes.B">仙姑</mat-option>
+          <mat-option [value]="PlatFormTypes.C">綠崎</mat-option>
+        </mat-select>
+      </mat-form-field>
+
+      <app-dropzone
+        [accept]="'.xlsx,.xls'"
+        [hint]="'支援 .xlsx、.xls 格式'"
+        [disabled]="busy()"
+        (fileSelected)="handleOrderWorkbookSelected($event)"
+        [containerClass]="'size-64 items-center flex justify-center'"
+      />
+    </mat-card-content>
+  </mat-card>
+  <mat-card class="min-w-72 col-span-2">
+    <mat-card-header>
+      <mat-card-title>最新匯入結果</mat-card-title>
+    </mat-card-header>
+    <mat-card-content class="mt-4">
+      <mat-expansion-panel hideToggle>
+        <mat-expansion-panel-header>
+          <mat-panel-title> 成功筆數: </mat-panel-title>
+          <mat-panel-description>
+            {{ state().lastImportResult?.importedCount }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+        <p>詳細資訊...</p>
+      </mat-expansion-panel>
+      <mat-expansion-panel hideToggle>
+        <mat-expansion-panel-header>
+          <mat-panel-title> 重複筆數: </mat-panel-title>
+          <mat-panel-description>
+            {{ state().lastImportResult?.duplicateCount }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+        <p>詳細資訊...</p>
+      </mat-expansion-panel>
+      <mat-expansion-panel hideToggle>
+        <mat-expansion-panel-header>
+          <mat-panel-title> 錯誤筆數: </mat-panel-title>
+          <mat-panel-description>
+            {{ state().lastImportResult?.errorCount }}
+          </mat-panel-description>
+        </mat-expansion-panel-header>
+        @if (state().lastImportResult?.errors) {
+          <mat-list>
+            @for (error of state().lastImportResult?.errors; track $index) {
+              <mat-list-item>
+                第 {{ error.rowNumber }} 列 - {{ error.field }}：{{ error.reason }}
+              </mat-list-item>
+            }
+          </mat-list>
+        }
+      </mat-expansion-panel>
+    </mat-card-content>
+  </mat-card>
+  <mat-card class="min-w-72 col-span-3">
+    <mat-card-header>
+      <mat-card-title>訂單列表</mat-card-title>
+    </mat-card-header>
+    <mat-card-content class="mt-4">
+      <order-table [orders]="orders()"></order-table>
+    </mat-card-content>
+  </mat-card>
+</section>
