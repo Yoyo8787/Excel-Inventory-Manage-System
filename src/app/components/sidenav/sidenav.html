@@ -1,5 +1,5 @@
 <mat-sidenav-container class="h-dvh">
-  <mat-sidenav class="py-8 w-64" mode="side" [opened]="layoutService.sidenavOpened()">
+  <mat-sidenav class="py-8 w-64!" mode="side" [opened]="layoutService.sidenavOpened()">
     <h1 class="font-bold pl-2 text-2xl">Excel庫存管理</h1>
     <ul class="mt-8">
       @for (item of menuItems; track item.route) {
@@ -7,7 +7,7 @@
           [ngClass]="{
             'bg-primary-container border-l-4 text-on-primary-container border-primary':
               layoutService.page() === item.route,
-            'hover:bg-primary-container hover:text-on-primary-container ':
+            'hover:bg-primary-container hover:text-on-primary-container cursor-pointer':
               layoutService.page() !== item.route,
             'transition-all pl-2': true,
           }"

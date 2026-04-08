@@ -1,5 +1,5 @@
-<section class="grid grid-cols-3 grid-rows-4 gap-6">
-  <mat-card class="min-w-72">
+<section class="grid grid-cols-3 gap-6 min-w-255 max-w-400">
+  <mat-card class="min-w-72 max-h-106">
     <mat-card-header>
       <mat-card-title>訂單匯入</mat-card-title>
     </mat-card-header>
@@ -26,44 +26,85 @@
       />
     </mat-card-content>
   </mat-card>
-  <mat-card class="min-w-72 col-span-2">
+  <mat-card
+    class="min-w-72 col-span-2 overflow-hidden border border-primary/10 bg-gradient-to-br from-primary-container/35 via-surface to-surface shadow-sm"
+  >
     <mat-card-header>
-      <mat-card-title>最新匯入結果</mat-card-title>
+      <mat-card-title class="text-2xl font-semibold tracking-wide text-on-surface">
+        最新匯入效能報告
+      </mat-card-title>
     </mat-card-header>
-    <mat-card-content class="mt-4">
-      <mat-expansion-panel hideToggle>
-        <mat-expansion-panel-header>
-          <mat-panel-title> 成功筆數: </mat-panel-title>
-          <mat-panel-description>
-            {{ state().lastImportResult?.importedCount }}
+    <mat-card-content class="mt-4 space-y-5">
+      <div class="grid gap-4 md:grid-cols-3">
+        <div class="rounded-3xl bg-surface/85 px-5 py-4 shadow-sm ring-1 ring-green-200/70">
+          <div class="flex items-center gap-4">
+            <div class="flex size-12 items-center justify-center rounded-full bg-green-100">
+              <span class="size-3 rounded-full bg-green-500"></span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="text-lg font-semibold text-on-surface">成功匯入訂單</div>
+              <div class="text-sm text-on-surface/60">無資料衝突，已同步庫存</div>
+            </div>
+            <div class="text-4xl font-bold tracking-tight text-green-600">
+              {{ importSummary().importedCount }}
+            </div>
+          </div>
+        </div>
+        <div class="rounded-3xl bg-surface/85 px-5 py-4 shadow-sm ring-1 ring-amber-200/70">
+          <div class="flex items-center gap-4">
+            <div class="flex size-12 items-center justify-center rounded-full bg-amber-100">
+              <span class="size-3 rounded-full bg-amber-500"></span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="text-lg font-semibold text-on-surface">偵測到重複項</div>
+              <div class="text-sm text-on-surface/60">已自動略過相同訂單編號</div>
+            </div>
+            <div class="text-4xl font-bold tracking-tight text-amber-500">
+              {{ importSummary().duplicateCount }}
+            </div>
+          </div>
+        </div>
+        <div class="rounded-3xl bg-surface/85 px-5 py-4 shadow-sm ring-1 ring-rose-200/70">
+          <div class="flex items-center gap-4">
+            <div class="flex size-12 items-center justify-center rounded-full bg-rose-100">
+              <span class="size-3 rounded-full bg-rose-500"></span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="text-lg font-semibold text-on-surface">格式錯誤筆數</div>
+              <div class="text-sm text-on-surface/60">欄位遺漏或資料型態不符</div>
+            </div>
+            <div class="text-4xl font-bold tracking-tight text-rose-600">
+              {{ importSummary().errorCount }}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <mat-expansion-panel
+        class="rounded-3xl !bg-surface/80 ring-1 ring-rose-200/70"
+        [hideToggle]="importSummary().errorCount === 0"
+        [disabled]="importSummary().errorCount === 0"
+      >
+        <mat-expansion-panel-header class="min-h-20 px-5">
+          <mat-panel-title class="text-lg font-semibold text-rose-700"> 錯誤明細 </mat-panel-title>
+          <mat-panel-description class="justify-end text-base font-semibold text-rose-600">
+            {{ importSummary().errorCount }} 筆
           </mat-panel-description>
         </mat-expansion-panel-header>
-        <p>詳細資訊...</p>
-      </mat-expansion-panel>
-      <mat-expansion-panel hideToggle>
-        <mat-expansion-panel-header>
-          <mat-panel-title> 重複筆數: </mat-panel-title>
-          <mat-panel-description>
-            {{ state().lastImportResult?.duplicateCount }}
-          </mat-panel-description>
-        </mat-expansion-panel-header>
-        <p>詳細資訊...</p>
-      </mat-expansion-panel>
-      <mat-expansion-panel hideToggle>
-        <mat-expansion-panel-header>
-          <mat-panel-title> 錯誤筆數: </mat-panel-title>
-          <mat-panel-description>
-            {{ state().lastImportResult?.errorCount }}
-          </mat-panel-description>
-        </mat-expansion-panel-header>
-        @if (state().lastImportResult?.errors) {
-          <mat-list>
-            @for (error of state().lastImportResult?.errors; track $index) {
-              <mat-list-item>
-                第 {{ error.rowNumber }} 列 - {{ error.field }}：{{ error.reason }}
+        @if (importSummary().errors.length) {
+          <mat-list class="px-3 pb-3">
+            @for (error of importSummary().errors; track $index) {
+              <mat-list-item class="!h-auto">
+                <div class="py-2 text-sm leading-6 text-on-surface">
+                  第 {{ error.rowNumber }} 列 - {{ error.field }}：{{ error.reason }}
+                </div>
               </mat-list-item>
             }
           </mat-list>
+        } @else {
+          <div class="px-5 pb-5 text-sm text-on-surface/60">
+            目前沒有錯誤資料，這次匯入流程看起來很乾淨。
+          </div>
         }
       </mat-expansion-panel>
     </mat-card-content>

@@ -41,6 +41,19 @@ export class OrdersPage {
   readonly state = this.#storeService.state;
   readonly busy = signal(false);
   readonly orders = computed(() => this.state().orders);
+  readonly importSummary = computed(() => {
+    const result = this.state().lastImportResult;
+    const importedCount = result?.importedCount ?? 0;
+    const duplicateCount = result?.duplicateCount ?? 0;
+    const errorCount = result?.errorCount ?? 0;
+
+    return {
+      importedCount,
+      duplicateCount,
+      errorCount,
+      errors: result?.errors ?? [],
+    };
+  });
 
   readonly PlatFormTypes = PlatFormTypes;
   readonly selectedPlatform = signal<PlatformType>(PlatFormTypes.A);
@@ -63,9 +76,16 @@ export class OrdersPage {
       this.#storeService.applyOrderImport(output);
 
       const result = output.result;
+      if (result.importedCount === 0 && result.errorCount > 0) {
+        this.#layoutService.showError(result.errors[0]?.reason ?? '匯入訂單失敗');
+        return;
+      }
+
       this.#layoutService.showMessage(
         `匯入完成：成功 ${result.importedCount}、重複 ${result.duplicateCount}、錯誤 ${result.errorCount}`,
       );
+
+      console.log('orders', this.orders());
     } catch (error) {
       this.#layoutService.showError(toErrorMessage(error, '匯入訂單失敗'));
     } finally {

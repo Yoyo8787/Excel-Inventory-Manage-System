@@ -32,6 +32,53 @@ export interface OrderImportOutput {
   result: ImportJobResult;
 }
 
+interface PlatformHeaderSignature {
+  platform: PlatformType;
+  minimumUniqueMatches: number;
+  uniqueHeaderGroups: string[][];
+}
+
+const PLATFORM_HEADER_SIGNATURES: PlatformHeaderSignature[] = [
+  {
+    platform: PlatFormTypes.A,
+    minimumUniqueMatches: 4,
+    uniqueHeaderGroups: [
+      ['Paid Date'],
+      ['付款者姓名'],
+      ['付款者電話'],
+      ['Customer Note'],
+      ['電子信箱'],
+      ['付款方式'],
+    ],
+  },
+  {
+    platform: PlatFormTypes.B,
+    minimumUniqueMatches: 4,
+    uniqueHeaderGroups: [
+      ['收件人姓名(寄海外請填寫英文)'],
+      ['收件人手機'],
+      ['收件地址寄海外請填寫英文'],
+      ['縣市寄海外請填英文'],
+      ['帳單名字'],
+      ['帳單電話'],
+    ],
+  },
+  {
+    platform: PlatFormTypes.C,
+    minimumUniqueMatches: 4,
+    uniqueHeaderGroups: [
+      ['收件人名稱'],
+      ['會員名稱'],
+      ['會員手機號碼'],
+      ['會員資料備註'],
+      ['付款時間'],
+      ['出貨時間'],
+      ['購買人名稱'],
+      ['購買人電話'],
+    ],
+  },
+];
+
 @Injectable({ providedIn: 'root' })
 export class OrderImportService {
   constructor(private readonly validationService: ValidationService) {}
@@ -68,6 +115,13 @@ export class OrderImportService {
     }
 
     const sheet = workbook.Sheets[sheetName];
+    const headerRow = this.#readHeaderRow(sheet);
+    const headerError = this.#validatePlatformHeaders(platform, headerRow);
+
+    if (headerError) {
+      return this.#emptyResult([headerError]);
+    }
+
     const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
       defval: '',
       raw: true,
@@ -253,19 +307,15 @@ export class OrderImportService {
     return {
       rowNumber,
       platform,
-      orderNo: this.#pickValue(fieldLookup, ['訂單編號', 'order_no', 'orderid']),
+      orderNo: this.#pickValue(fieldLookup, ['訂單編號']),
       orderDate: rowDate ?? '',
       statusRaw,
       status: this.#normalizeBusinessStatus(statusRaw),
-      productName: this.#pickValue(fieldLookup, ['商品名稱', '品名', 'product_name']),
+      productName: this.#pickValue(fieldLookup, ['品名', '商品名稱']),
       quantity: parsedQuantity,
-      amountTotal: this.#parseNumber(
-        this.#pickValue(fieldLookup, ['總額', '總計', '金額', 'amount_total']),
-      ),
-      unitPrice: this.#parseNumber(
-        this.#pickValue(fieldLookup, ['商品售價', '單價', 'unit_price']),
-      ),
-      subtotal: this.#parseNumber(this.#pickValue(fieldLookup, ['小計', 'subtotal'])),
+      amountTotal: this.#parseNumber(this.#pickValue(fieldLookup, ['金額', '總額', '總計'])),
+      unitPrice: this.#parseNumber(this.#pickValue(fieldLookup, ['商品售價', '單價'])),
+      subtotal: this.#parseNumber(this.#pickValue(fieldLookup, ['小計'])),
       customerName: this.#pickValue(fieldLookup, this.#customerNameAliases(platform)),
       customerPhone: this.#pickValue(fieldLookup, this.#customerPhoneAliases(platform)),
       address: this.#buildAddress(platform, fieldLookup),
@@ -275,12 +325,25 @@ export class OrderImportService {
   }
 
   #buildAddress(platform: PlatformType, fieldLookup: Map<string, unknown>): string | undefined {
-    const direct = this.#toText(
-      this.#pickValue(fieldLookup, ['收件地址', '地址', 'address', '收件人地址']),
-    );
+    const directAliases =
+      platform === PlatFormTypes.A
+        ? ['地址']
+        : platform === PlatFormTypes.B
+          ? ['收件地址寄海外請填寫英文']
+          : ['收件地址', '地址'];
+    const direct = this.#toText(this.#pickValue(fieldLookup, directAliases));
 
     if (direct.length > 0) {
       return direct;
+    }
+
+    if (platform === PlatFormTypes.A) {
+      const city = this.#toText(this.#pickValue(fieldLookup, ['縣市']));
+      const district = this.#toText(this.#pickValue(fieldLookup, ['鄉鎮市區']));
+      const address = this.#toText(this.#pickValue(fieldLookup, ['地址']));
+
+      const merged = [city, district, address].filter((value) => value.length > 0).join(' ');
+      return merged.length > 0 ? merged : undefined;
     }
 
     if (platform === PlatFormTypes.B) {
@@ -295,6 +358,20 @@ export class OrderImportService {
     }
 
     return undefined;
+  }
+
+  #readHeaderRow(sheet: XLSX.WorkSheet): string[] {
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+      header: 1,
+      raw: true,
+      defval: '',
+      blankrows: false,
+    });
+    const headerRow = rows.find((row) => row.some((cell) => this.#toText(cell).length > 0)) ?? [];
+
+    return headerRow
+      .map((cell) => this.#toText(cell))
+      .filter((header) => header.length > 0);
   }
 
   #buildFieldLookup(rawRow: Record<string, unknown>): Map<string, unknown> {
@@ -318,27 +395,126 @@ export class OrderImportService {
     return undefined;
   }
 
+  #validatePlatformHeaders(
+    selectedPlatform: PlatformType,
+    headers: string[],
+  ): ImportErrorRow | null {
+    const signatureMatches = PLATFORM_HEADER_SIGNATURES.map((signature) => ({
+      signature,
+      matchedHeaders: signature.uniqueHeaderGroups
+        .map((group) => group.find((header) => this.#hasHeader(headers, header)))
+        .filter((header): header is string => Boolean(header)),
+    }));
+    const matchedSignatures = signatureMatches.filter(
+      ({ signature, matchedHeaders }) => matchedHeaders.length >= signature.minimumUniqueMatches,
+    );
+    const selectedMatch = signatureMatches.find(
+      ({ signature }) => signature.platform === selectedPlatform,
+    );
+
+    if (matchedSignatures.length > 1) {
+      const platforms = matchedSignatures.map(({ signature }) => signature.platform).join('、');
+
+      return this.#createHeaderError(
+        selectedPlatform,
+        headers,
+        `標題列同時命中多個平台格式（${platforms}），請確認匯入檔案沒有混用不同平台欄位。`,
+      );
+    }
+
+    if (
+      matchedSignatures.length === 1 &&
+      matchedSignatures[0]!.signature.platform !== selectedPlatform
+    ) {
+      const detectedPlatform = matchedSignatures[0]!.signature.platform;
+
+      return this.#createHeaderError(
+        selectedPlatform,
+        headers,
+        `目前選擇的是「${selectedPlatform}」，但這份檔案的欄位格式判定為「${detectedPlatform}」。請切換正確平台後再匯入。`,
+      );
+    }
+
+    if (selectedMatch && matchedSignatures.length === 1) {
+      return null;
+    }
+
+    const missingHeaders = this.#missingSignatureHeaders(selectedPlatform, headers);
+    const expectedHeaders = missingHeaders.length > 0 ? missingHeaders : this.#expectedSignatureHeaders(selectedPlatform);
+
+    return this.#createHeaderError(
+      selectedPlatform,
+      headers,
+      `無法辨識為「${selectedPlatform}」匯入格式，缺少關鍵欄位：${expectedHeaders.join('、')}。`,
+    );
+  }
+
+  #createHeaderError(
+    platform: PlatformType,
+    headers: string[],
+    reason: string,
+  ): ImportErrorRow {
+    return {
+      rowNumber: 1,
+      platform,
+      field: 'header',
+      reason,
+      raw: {
+        headers: headers.join(' | '),
+      },
+    };
+  }
+
+  #missingSignatureHeaders(platform: PlatformType, headers: string[]): string[] {
+    const signature = PLATFORM_HEADER_SIGNATURES.find((item) => item.platform === platform);
+
+    if (!signature) {
+      return [];
+    }
+
+    return signature.uniqueHeaderGroups
+      .filter((group) => !group.some((header) => this.#hasHeader(headers, header)))
+      .map((group) => group[0]!)
+      .slice(0, 4);
+  }
+
+  #expectedSignatureHeaders(platform: PlatformType): string[] {
+    const signature = PLATFORM_HEADER_SIGNATURES.find((item) => item.platform === platform);
+
+    if (!signature) {
+      return [];
+    }
+
+    return signature.uniqueHeaderGroups.map((group) => group[0]!).slice(0, 4);
+  }
+
+  #hasHeader(headers: string[], target: string): boolean {
+    const normalizedTarget = this.#normalizeHeader(target);
+
+    return headers.some((header) => this.#normalizeHeader(header) === normalizedTarget);
+  }
+
   #dateAliases(platform: PlatformType): string[] {
     switch (platform) {
       case PlatFormTypes.A:
-        return ['Paid Date', '訂單日期', '日期', '時間'];
+        return ['Paid Date', '訂單日期'];
       case PlatFormTypes.B:
-        return ['日期', '訂單付款日期', '訂單日期'];
+        return ['訂單付款日期', '日期'];
       case PlatFormTypes.C:
-        return ['時間', '付款時間', '出貨時間', '日期'];
+        return ['付款時間', '出貨時間', '時間'];
       default:
-        return ['日期', '時間'];
+        return ['日期'];
     }
   }
 
   #statusAliases(platform: PlatformType): string[] {
     switch (platform) {
       case PlatFormTypes.A:
-        return ['訂單狀態', '狀態'];
+        return ['訂單狀態'];
       case PlatFormTypes.B:
-        return ['狀態', '訂單狀態'];
+        return ['狀態'];
       case PlatFormTypes.C:
-        return ['訂單狀態', '出貨狀態', '狀態'];
+        return ['訂單狀態', '出貨狀態'];
       default:
         return ['訂單狀態'];
     }
@@ -347,7 +523,7 @@ export class OrderImportService {
   #customerNameAliases(platform: PlatformType): string[] {
     switch (platform) {
       case PlatFormTypes.A:
-        return ['付款者姓名', '收件人'];
+        return ['付款者姓名'];
       case PlatFormTypes.B:
         return ['收件人姓名(寄海外請填寫英文)', '帳單名字'];
       case PlatFormTypes.C:
@@ -360,11 +536,11 @@ export class OrderImportService {
   #customerPhoneAliases(platform: PlatformType): string[] {
     switch (platform) {
       case PlatFormTypes.A:
-        return ['付款者電話', '收件人電話'];
+        return ['付款者電話'];
       case PlatFormTypes.B:
         return ['收件人手機', '帳單電話'];
       case PlatFormTypes.C:
-        return ['收件人電話', '會員手機號碼', '購買人電話'];
+        return ['會員手機號碼', '購買人電話', '收件人電話'];
       default:
         return ['收件人電話'];
     }
@@ -373,11 +549,11 @@ export class OrderImportService {
   #noteAliases(platform: PlatformType): string[] {
     switch (platform) {
       case PlatFormTypes.A:
-        return ['Customer Note', '訂單備註', '備註'];
+        return ['Customer Note'];
       case PlatFormTypes.B:
         return ['訂單備註', '備註'];
       case PlatFormTypes.C:
-        return ['備註', '會員資料備註'];
+        return ['會員資料備註', '備註'];
       default:
         return ['備註'];
     }
