@@ -1,18 +1,26 @@
-import { Component, inject, input } from '@angular/core';
-import { MatIconModule } from '@angular/material/icon';
-import { CommonModule } from '@angular/common';
-import { MatChipsModule } from '@angular/material/chips';
-import { MatToolbarModule } from '@angular/material/toolbar';
+import { Component, computed, inject, input, output } from '@angular/core';
 
 import { LayoutService } from '../../core/services/layout.service';
+import { MenuItem } from '../sidenav/menu';
 
 @Component({
   selector: 'app-toolbar',
-  imports: [CommonModule, MatChipsModule, MatToolbarModule, MatIconModule],
+  imports: [],
   templateUrl: './toolbar.html',
 })
 export class Toolbar {
   readonly isDirty = input(false);
   readonly lastSavedAt = input<string | null>(null);
+  readonly saved = output<void>();
+
   readonly layoutService = inject(LayoutService);
+
+  readonly pageLabel = computed(() => {
+    const page = this.layoutService.page();
+    return MenuItem.find(m => m.route === page)?.label ?? '控制面板';
+  });
+
+  onSave(): void {
+    this.saved.emit();
+  }
 }

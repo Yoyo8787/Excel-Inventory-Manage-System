@@ -1,0 +1,141 @@
+<div class="fade-in">
+  <div class="masthead">
+    <div class="masthead-left">
+      <div>
+        <span class="eyebrow">Manual Entry — Offline Order Form</span>
+        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">手動輸入</h2>
+      </div>
+    </div>
+    <div class="masthead-right"><div class="doc-no">FORM / MANUAL</div></div>
+  </div>
+
+  <div class="grid-3 gap-6" style="margin-top:22px;">
+    <!-- 訂單表單 -->
+    <div class="file-card" style="grid-column:span 2;">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">FORM A · 訂購單</div>
+          <div class="file-card-title">訂單基本資料</div>
+        </div>
+      </div>
+      <div class="file-card-body">
+        <div class="grid-2 gap-6">
+          <mat-form-field appearance="outline" style="width:100%;">
+            <mat-label>平台別</mat-label>
+            <mat-select [value]="platform()" (valueChange)="platform.set($event)">
+              @for (p of platforms; track p) {
+                <mat-option [value]="p">{{ p }}</mat-option>
+              }
+            </mat-select>
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width:100%;" class="mono">
+            <mat-label>訂單編號</mat-label>
+            <input matInput placeholder="留空自動產生 MN-XXXXX"
+                   [value]="orderNo()" (input)="orderNo.set($any($event.target).value)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width:100%;">
+            <mat-label>訂購人</mat-label>
+            <input matInput placeholder="林小姐"
+                   [value]="buyer()" (input)="buyer.set($any($event.target).value)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width:100%;" class="mono">
+            <mat-label>連絡電話</mat-label>
+            <input matInput placeholder="0912-345-678"
+                   [value]="phone()" (input)="phone.set($any($event.target).value)" />
+          </mat-form-field>
+
+          <!-- 地址跨兩欄：用 div 包裹，讓 grid-column span 作用在外層 -->
+          <div style="grid-column:span 2;">
+            <mat-form-field appearance="outline" style="width:100%;">
+              <mat-label>配送地址</mat-label>
+              <input matInput placeholder="台北市信義區松高路 11 號"
+                     [value]="addr()" (input)="addr.set($any($event.target).value)" />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="divider-ornament" style="margin:22px 0 10px;"><span>項次 · LINE ITEMS</span></div>
+
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th class="row-num">#</th>
+              <th style="width:160px;">SKU</th>
+              <th>品名（自動對照）</th>
+              <th class="num" style="width:80px;">數量</th>
+              <th class="num" style="width:100px;">單價</th>
+              <th class="num" style="width:100px;">小計</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of lines(); track $index; let i = $index) {
+              <tr>
+                <td class="row-num">{{ (i+1).toString().padStart(2,'0') }}</td>
+                <td>
+                  <input class="inline-input mono" placeholder="SKU-····"
+                         [value]="l.sku" (input)="updateLine(i,'sku',$any($event.target).value)" />
+                </td>
+                <td style="color:var(--ink-muted); font-size:13px;">
+                  {{ getProductName(l.sku) }}
+                </td>
+                <td class="num">
+                  <input class="inline-input mono" type="number" style="text-align:right;"
+                         [value]="l.qty" (input)="updateLine(i,'qty',+$any($event.target).value||0)" />
+                </td>
+                <td class="num">
+                  <input class="inline-input mono" type="number" style="text-align:right;"
+                         [value]="l.price" (input)="updateLine(i,'price',+$any($event.target).value||0)" />
+                </td>
+                <td class="num mono">$ {{ (l.qty * l.price).toLocaleString() }}</td>
+                <td>
+                  @if (lines().length > 1) {
+                    <button class="btn btn-sm btn-ghost btn-icon" (click)="rmLine(i)">
+                      <span class="mat-icon sm">close</span>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+        <button class="btn btn-ghost btn-sm" style="margin-top:10px;" (click)="addLine()">
+          <span class="mat-icon sm">add</span>新增項次
+        </button>
+      </div>
+    </div>
+
+    <!-- 結算 -->
+    <div class="file-card">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">SUM · 結算</div>
+          <div class="file-card-title">金額總計</div>
+        </div>
+      </div>
+      <div class="file-card-body">
+        <div class="summary-row"><span>項次數</span><span class="mono">{{ lines().length }} 項</span></div>
+        <div class="divider-ornament" style="margin:14px 0;"><span>❦</span></div>
+        <div class="summary-row" style="align-items:baseline;">
+          <span class="serif" style="font-size:14px;">應收合計</span>
+          <span class="display-title" style="font-size:30px; color:var(--danger);">$ {{ total().toLocaleString() }}</span>
+        </div>
+
+        <div style="margin-top:20px;">
+          <button class="btn btn-primary" style="width:100%; justify-content:center; padding:10px;" (click)="submit()">
+            <span class="mat-icon sm">verified</span>送出訂單
+          </button>
+        </div>
+
+        <div style="margin-top:22px; display:flex; align-items:center; justify-content:center;">
+          <div class="stamp round" style="width:92px; height:92px; font-size:12px; flex-direction:column;">
+            手動<br>訂單<br>MANUAL
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

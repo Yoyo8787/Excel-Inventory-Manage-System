@@ -1,0 +1,81 @@
+<div class="fade-in">
+  <div class="masthead">
+    <div class="masthead-left">
+      <div>
+        <span class="eyebrow">System Settings — Configuration</span>
+        <h2 class="display-title" style="font-size: 26px; margin: 4px 0 0; font-weight: 600">
+          系統設定
+        </h2>
+      </div>
+    </div>
+    <div class="masthead-right"><div class="doc-no">CFG / 2026</div></div>
+  </div>
+
+  <div class="grid-2 gap-6" style="margin-top: 22px">
+    <!-- 平台映射 -->
+    <div class="file-card">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">§ 01 · 平台映射</div>
+          <div class="file-card-title">欄位對應表</div>
+        </div>
+      </div>
+      <div class="file-card-body">
+        @for (g of platformMappings; track g.plat) {
+          <div style="margin-bottom: 14px">
+            <div class="eyebrow" style="margin-bottom: 6px">{{ g.plat }}</div>
+            @for (f of g.fields; track $index) {
+              <div class="mapping-row">
+                <span class="mono" style="color: var(--ink-muted)">{{ f[0] }}</span>
+                <span style="color: var(--hairline-2); text-align: center">⟶</span>
+                <span class="mono">{{ f[1] }}</span>
+              </div>
+            }
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- 庫存閾值 -->
+    <div class="file-card">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">§ 02 · 閾值</div>
+          <div class="file-card-title">庫存警示</div>
+        </div>
+      </div>
+      <div class="file-card-body">
+        <mat-form-field appearance="outline" style="width: 100%; margin-bottom: 14px" class="mono">
+          <mat-label>全域安全庫存量</mat-label>
+          <input matInput type="number" value="20" />
+        </mat-form-field>
+
+        <mat-form-field appearance="outline" style="width: 100%; margin-bottom: 14px" class="mono">
+          <mat-label>急需補貨閾值</mat-label>
+          <input matInput type="number" value="5" />
+        </mat-form-field>
+
+        <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 4px">
+          <mat-checkbox
+            [checked]="autoDeductStock()"
+            (change)="autoDeductStock.set($event.checked)"
+          >
+            匯入訂單時即時扣庫
+          </mat-checkbox>
+          <mat-checkbox
+            [checked]="showLowStockAlert()"
+            (change)="showLowStockAlert.set($event.checked)"
+          >
+            低庫存時於控制面板顯示警示
+          </mat-checkbox>
+          <mat-checkbox
+            [checked]="allowNegativeStock()"
+            (change)="allowNegativeStock.set($event.checked)"
+          >
+            允許負庫存（欠貨）
+          </mat-checkbox>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

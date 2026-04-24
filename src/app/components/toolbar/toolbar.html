@@ -1,18 +1,27 @@
-<mat-toolbar color="primary" class="flex justify-between items-center">
-  <button
-    matMiniFab
-    aria-label="Example icon button with a menu icon"
-    (click)="layoutService.toggleSidenav()"
-    class="cursor-pointer"
-  >
-    <mat-icon>menu</mat-icon>
-  </button>
-  <mat-chip-set>
-    <mat-chip>
-      {{ '最後存檔: ' + (lastSavedAt() || '尚未保存') }}
-    </mat-chip>
-    <mat-chip>
-      {{ isDirty() ? '需要存檔' : '無改動' }}
-    </mat-chip>
-  </mat-chip-set>
-</mat-toolbar>
+<header class="toolbar">
+  <div class="toolbar-left">
+    <button class="btn btn-ghost btn-icon" (click)="layoutService.toggleSidenav()" title="折疊側欄">
+      <span class="mat-icon">menu_open</span>
+    </button>
+    <div class="crumb">
+      <span class="crumb-title">{{ pageLabel() }}</span>
+    </div>
+  </div>
+
+  <div class="toolbar-right">
+    <div class="meta-group">
+      <span class="eyebrow">最後存檔</span>
+      <span class="meta-val">{{ lastSavedAt() || '—— —— ——' }}</span>
+    </div>
+    <div class="meta-group">
+      <span class="eyebrow">狀態</span>
+      <span class="tag dot" [class.red]="isDirty()" [class.green]="!isDirty()">
+        {{ isDirty() ? '需要存檔' : '無改動' }}
+      </span>
+    </div>
+    <button class="btn btn-primary btn-sm" (click)="onSave()">
+      <span class="mat-icon sm">save</span>
+      存檔
+    </button>
+  </div>
+</header>

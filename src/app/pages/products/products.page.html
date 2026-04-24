@@ -1,0 +1,138 @@
+<div class="fade-in">
+  <div class="masthead">
+    <div class="masthead-left">
+      <div>
+        <span class="eyebrow">Product Catalogue — Master File</span>
+        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">商品清單</h2>
+      </div>
+    </div>
+    <div class="masthead-right"><div class="doc-no">CAT / {{ state().meta.datasetName }}</div></div>
+  </div>
+
+  <div class="grid-3 gap-6" style="margin-top:22px;">
+    <!-- 商品主表 -->
+    <div class="file-card" style="grid-column:span 2;">
+      <div class="file-card-head">
+        <div style="display:flex; gap:12px; align-items:center; flex:1;">
+          <span class="mat-icon" style="color:var(--ink-muted);">search</span>
+          <input
+            [value]="q()"
+            (input)="q.set($any($event.target).value)"
+            placeholder="搜尋 SKU 或品名 ······"
+            style="flex:1; background:transparent; border:none; outline:none; font-size:15px; color:var(--ink); font-family:var(--font-sans);"
+          />
+          <span class="mono" style="font-size:11px; color:var(--ink-faint);">
+            {{ filtered().length }} / {{ state().products.length }}
+          </span>
+        </div>
+        <button class="btn btn-sm"><span class="mat-icon sm">add</span>新增商品</button>
+      </div>
+
+      @if (state().products.length === 0) {
+        <div class="file-card-body" style="text-align:center; padding:60px 20px;">
+          <span class="mat-icon lg" style="color:var(--ink-faint); display:block; margin-bottom:12px;">inventory_2</span>
+          <div class="mono" style="letter-spacing:0.15em; color:var(--ink-faint);">— 尚無商品資料 —</div>
+          <div class="margin-note" style="margin-top:8px;">請先載入含商品資料的 Workbook，或點選「新增商品」</div>
+        </div>
+      } @else {
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th class="row-num">№</th>
+              <th style="width:130px;">SKU</th>
+              <th>品名</th>
+              <th class="num" style="width:100px;">安全庫存量</th>
+              <th class="num" style="width:70px;">配對數</th>
+              <th style="width:32px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of filtered(); track p.id; let i = $index) {
+              <tr
+                style="cursor:pointer;"
+                [style.background]="state().products.indexOf(p) === selectedIdx() ? 'var(--mint-50)' : ''"
+                (click)="selectProduct(state().products.indexOf(p))"
+              >
+                <td class="row-num">{{ (i+1).toString().padStart(3,'0') }}</td>
+                <td class="mono">{{ p.sku ?? '—' }}</td>
+                <td style="font-weight:600;">{{ p.name }}</td>
+                <td class="num mono">{{ p.lowStockThreshold }}</td>
+                <td class="num">
+                  <span class="tag" style="font-size:10px;">
+                    {{ mappingCount(p.id) }}
+                  </span>
+                </td>
+                <td>
+                  <span class="mat-icon sm" style="color:var(--ink-faint);">chevron_right</span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      }
+    </div>
+
+    <!-- 配對面板 -->
+    <div class="file-card">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">MAPPING · 實際貨物 × 平台</div>
+          <div class="file-card-title">商品配對</div>
+        </div>
+      </div>
+
+      @if (!active()) {
+        <div class="file-card-body" style="text-align:center; padding:40px 16px;">
+          <div class="mono" style="color:var(--ink-faint); font-size:12px;">← 請先選擇左側商品</div>
+        </div>
+      } @else {
+        <div class="file-card-body">
+          <div style="padding:10px 14px; border:1px solid var(--hairline); background:var(--surface-2); border-radius:var(--r-sm);">
+            <div class="eyebrow" style="margin-bottom:4px;">實際貨物 · MASTER</div>
+            <div class="serif" style="font-size:16px; font-weight:700;">{{ active()!.name }}</div>
+            <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:2px;">
+              {{ active()!.sku ?? '無 SKU' }}
+            </div>
+            <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:6px;">
+              安全庫存量：{{ active()!.lowStockThreshold }}
+              @if (active()!.note) { · {{ active()!.note }} }
+            </div>
+          </div>
+
+          <div class="divider-ornament" style="margin:14px 0;">
+            <span class="serif" style="font-size:13px;">⇵ 平台對應</span>
+          </div>
+
+          @if (activeMappings().length === 0) {
+            <div style="text-align:center; padding:20px 0;">
+              <div class="mono" style="font-size:11px; color:var(--ink-faint);">尚無配對規則</div>
+            </div>
+          } @else {
+            @for (m of activeMappings(); track m.id) {
+              <div style="padding:10px 12px; border:1px dashed var(--hairline); margin-bottom:8px; border-radius:var(--r-sm); position:relative;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                  <span class="tag blue dot">{{ m.platform }}</span>
+                </div>
+                <div style="font-size:13px; line-height:1.4;">{{ m.platformProductName }}</div>
+                <button class="btn btn-sm btn-ghost btn-icon" style="position:absolute; top:8px; right:8px;">
+                  <span class="mat-icon sm">close</span>
+                </button>
+              </div>
+            }
+          }
+
+          <button class="btn btn-ghost" style="width:100%; justify-content:center; margin-top:8px; border-style:dashed;">
+            <span class="mat-icon sm">add_link</span>新增平台配對
+          </button>
+
+          <div class="divider-ornament" style="margin:18px 0 10px;"><span>§</span></div>
+          <div class="mono" style="font-size:11px; color:var(--ink-muted); line-height:1.7;">
+            · 同一實際貨物可對應多個平台商品<br>
+            · 匯入訂單時系統自動依此表扣庫<br>
+            · 若無配對則需手動指派
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+</div>

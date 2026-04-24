@@ -1,15 +1,5 @@
 import { Component, inject, signal } from '@angular/core';
-
-import { MatButtonModule } from '@angular/material/button';
-import { FormsModule } from '@angular/forms';
-import {
-  MatDialogActions,
-  MatDialogContent,
-  MatDialogRef,
-  MatDialogTitle,
-} from '@angular/material/dialog';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
+import { MatDialogRef } from '@angular/material/dialog';
 
 import { StoreService, ExcelIoService, LayoutService } from '../../core/services';
 import { toErrorMessage, stripExtension } from '../../core/utils';
@@ -17,15 +7,7 @@ import { toErrorMessage, stripExtension } from '../../core/utils';
 @Component({
   selector: 'app-init',
   templateUrl: './init.page.html',
-  imports: [
-    MatFormFieldModule,
-    MatInputModule,
-    FormsModule,
-    MatButtonModule,
-    MatDialogTitle,
-    MatDialogActions,
-    MatDialogContent,
-  ],
+  imports: [],
 })
 export class InitPage {
   readonly #storeService = inject(StoreService);
@@ -45,13 +27,9 @@ export class InitPage {
     const fileInput = event.target as HTMLInputElement;
     const file = fileInput.files?.[0];
     fileInput.value = '';
-
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     this.busy.set(true);
-
     try {
       const loadedState = await this.#excelIoService.loadSystemWorkbook(file);
       this.#storeService.loadDataset(loadedState, stripExtension(file.name));

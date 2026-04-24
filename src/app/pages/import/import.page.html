@@ -1,0 +1,179 @@
+<div class="fade-in">
+  <div class="masthead">
+    <div class="masthead-left">
+      <div>
+        <span class="eyebrow">Goods Receipt — Inbound</span>
+        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">進貨作業</h2>
+      </div>
+    </div>
+    <div class="masthead-right"><div class="doc-no">IN / {{ date() }}</div></div>
+  </div>
+
+  <div class="grid-3 gap-6" style="margin-top:22px;">
+    <!-- 進貨表單 -->
+    <div class="file-card" style="grid-column:span 2;">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">FORM · 進貨登記</div>
+          <div class="file-card-title">新增進貨單</div>
+        </div>
+        <span class="doc-no">DRAFT</span>
+      </div>
+      <div class="file-card-body">
+        <div class="grid-2 gap-6">
+          <mat-form-field appearance="outline" style="width:100%;">
+            <mat-label>供應商</mat-label>
+            <input matInput placeholder="供應商名稱"
+                   [value]="supplier()" (input)="supplier.set($any($event.target).value)" />
+          </mat-form-field>
+
+          <mat-form-field appearance="outline" style="width:100%;">
+            <mat-label>進貨日期</mat-label>
+            <input matInput type="date"
+                   [value]="date()" (input)="date.set($any($event.target).value)" />
+          </mat-form-field>
+
+          <!-- 備註跨兩欄：外層 div 負責 grid-column span -->
+          <div style="grid-column:span 2;">
+            <mat-form-field appearance="outline" style="width:100%;">
+              <mat-label>備註</mat-label>
+              <input matInput placeholder="選填 · 例如：電話訂貨、急件"
+                     [value]="note()" (input)="note.set($any($event.target).value)" />
+            </mat-form-field>
+          </div>
+        </div>
+
+        <div class="divider-ornament" style="margin:22px 0 10px;"><span>項次 · LINE ITEMS</span></div>
+
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th class="row-num">#</th>
+              <th style="width:140px;">SKU</th>
+              <th>品名</th>
+              <th class="num" style="width:80px;">數量</th>
+              <th class="num" style="width:90px;">單價</th>
+              <th class="num" style="width:100px;">小計</th>
+              <th style="width:40px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (l of lines(); track $index; let i = $index) {
+              <tr>
+                <td class="row-num">{{ (i+1).toString().padStart(2,'0') }}</td>
+                <td><input class="inline-input mono" placeholder="SKU-····"
+                           [value]="l.sku" (input)="updateLine(i,'sku',$any($event.target).value)" /></td>
+                <td><input class="inline-input" placeholder="商品名稱"
+                           [value]="l.name" (input)="updateLine(i,'name',$any($event.target).value)" /></td>
+                <td class="num"><input class="inline-input mono" type="number" style="text-align:right;"
+                           [value]="l.qty" (input)="updateLine(i,'qty',+$any($event.target).value||0)" /></td>
+                <td class="num"><input class="inline-input mono" type="number" style="text-align:right;"
+                           [value]="l.price" (input)="updateLine(i,'price',+$any($event.target).value||0)" /></td>
+                <td class="num mono">$ {{ (l.qty * l.price).toLocaleString() }}</td>
+                <td>
+                  @if (lines().length > 1) {
+                    <button class="btn btn-sm btn-ghost btn-icon" (click)="rmLine(i)">
+                      <span class="mat-icon sm">close</span>
+                    </button>
+                  }
+                </td>
+              </tr>
+            }
+            <tr>
+              <td colspan="5" style="text-align:right; font-family:var(--font-mono); letter-spacing:0.14em; color:var(--ink-muted); font-size:11px; padding:12px;">合計</td>
+              <td class="num display-title" style="font-size:18px; color:var(--danger);">$ {{ total().toLocaleString() }}</td>
+              <td></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <div style="display:flex; gap:8px; margin-top:14px;">
+          <button class="btn btn-ghost btn-sm" (click)="addLine()">
+            <span class="mat-icon sm">add</span>新增項次
+          </button>
+          <button class="btn btn-ghost btn-sm">
+            <span class="mat-icon sm">auto_awesome</span>依低庫存自動帶入
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 結算 -->
+    <div class="file-card">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">SUM · 結算</div>
+          <div class="file-card-title">進貨合計</div>
+        </div>
+      </div>
+      <div class="file-card-body">
+        <div class="summary-row"><span>項次數</span><span class="mono">{{ lines().length }} 項</span></div>
+        <div class="summary-row"><span>總數量</span><span class="mono">{{ totalQty() }} 件</span></div>
+        <div class="summary-row"><span>供應商</span><span class="serif">{{ supplier() || '—' }}</span></div>
+        <div class="summary-row"><span>日期</span><span class="mono">{{ date() }}</span></div>
+        <div class="divider-ornament" style="margin:14px 0;"><span>❦</span></div>
+        <div class="summary-row" style="align-items:baseline;">
+          <span class="serif" style="font-size:14px;">應付總額</span>
+          <span class="display-title" style="font-size:28px; color:var(--danger);">$ {{ total().toLocaleString() }}</span>
+        </div>
+
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:8px;">
+          <button class="btn btn-primary" style="width:100%; justify-content:center; padding:10px;" (click)="submit()">
+            <span class="mat-icon sm">verified</span>送出入庫
+          </button>
+          <button class="btn btn-ghost" style="width:100%; justify-content:center;">
+            <span class="mat-icon sm">save</span>存為草稿
+          </button>
+        </div>
+
+        <div style="margin-top:22px; display:flex; align-items:center; justify-content:center;">
+          <div class="stamp round" style="width:92px; height:92px; font-size:12px; flex-direction:column;">
+            進貨<br>單<br>INBOUND
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 進貨紀錄 -->
+  <div class="file-card" style="margin-top:24px;">
+    <div class="file-card-head">
+      <div>
+        <div class="eyebrow">HISTORY · 近期進貨</div>
+        <div class="file-card-title">進貨紀錄</div>
+      </div>
+      <span class="doc-no">最近 20 筆</span>
+    </div>
+
+    @if (inboundHistory().length === 0) {
+      <div class="file-card-body" style="text-align:center; padding:48px 20px;">
+        <span class="mat-icon lg" style="color:var(--ink-faint); display:block; margin-bottom:12px;">inventory_2</span>
+        <div class="mono" style="letter-spacing:0.15em; color:var(--ink-faint);">— 尚無進貨紀錄 —</div>
+        <div class="margin-note" style="margin-top:8px;">填寫上方表單並送出，即可建立進貨紀錄</div>
+      </div>
+    } @else {
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th class="row-num">№</th>
+            <th style="width:140px;">日期</th>
+            <th>商品名稱</th>
+            <th class="num" style="width:80px;">數量</th>
+            <th>備註</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (r of inboundHistory(); track r.id; let i = $index) {
+            <tr>
+              <td class="row-num">{{ (i+1).toString().padStart(3,'0') }}</td>
+              <td class="mono">{{ r.inboundDate }}</td>
+              <td style="font-weight:600;">{{ getProductName(r.productId) }}</td>
+              <td class="num mono">{{ r.quantity }}</td>
+              <td class="mono" style="color:var(--ink-muted); font-size:11.5px;">{{ r.note || '—' }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    }
+  </div>
+</div>

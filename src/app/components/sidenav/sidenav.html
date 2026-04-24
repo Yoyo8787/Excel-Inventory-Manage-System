@@ -1,27 +1,44 @@
-<mat-sidenav-container class="h-dvh">
-  <mat-sidenav class="py-8 w-64!" mode="side" [opened]="layoutService.sidenavOpened()">
-    <h1 class="font-bold pl-2 text-2xl">Excel庫存管理</h1>
-    <ul class="mt-8">
-      @for (item of menuItems; track item.route) {
-        <li
-          [ngClass]="{
-            'bg-primary-container border-l-4 text-on-primary-container border-primary':
-              layoutService.page() === item.route,
-            'hover:bg-primary-container hover:text-on-primary-container cursor-pointer':
-              layoutService.page() !== item.route,
-            'transition-all pl-2': true,
-          }"
-        >
-          <a
-            (click)="layoutService.setPage(item.route)"
-            class="flex items-center gap-2 text-lg h-14"
-          >
-            <mat-icon>{{ item.icon }}</mat-icon>
-            <span>{{ item.label }}</span>
-          </a>
-        </li>
-      }
-    </ul>
-  </mat-sidenav>
-  <mat-sidenav-content><ng-content /></mat-sidenav-content>
-</mat-sidenav-container>
+<aside class="sidenav">
+  <div class="sidenav-head">
+    <div style="display: flex; align-items: center; gap: 10px">
+      <div
+        style="
+          width: 30px;
+          height: 30px;
+          border-radius: 8px;
+          background: var(--mint-500);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #fff;
+          flex-shrink: 0;
+        "
+      >
+        <span class="mat-icon sm">inventory_2</span>
+      </div>
+      <div style="line-height: 1.2">
+        <div style="font-size: 15px; font-weight: 600; color: var(--ink)">Excel 庫存</div>
+      </div>
+    </div>
+  </div>
+
+  <nav class="sidenav-list">
+    @for (item of menuItems; track item.route) {
+      <button
+        class="nav-item"
+        [class.active]="layoutService.page() === item.route"
+        (click)="layoutService.setPage(item.route)"
+      >
+        <span class="mat-icon">{{ item.icon }}</span>
+        <span class="nav-label">{{ item.label }}</span>
+      </button>
+    }
+  </nav>
+
+  <div class="sidenav-foot">
+    <div class="doc-no" style="line-height: 1.7; font-size: 10.5px">
+      <div>單機版 · 本機 Workbook</div>
+      <div>Author Yoyo8787</div>
+    </div>
+  </div>
+</aside>

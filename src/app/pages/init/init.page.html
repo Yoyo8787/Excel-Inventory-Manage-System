@@ -1,28 +1,50 @@
-<h2 mat-dialog-title>初始化資料</h2>
+<div style="width:560px; max-width:92vw; background:var(--surface); border-radius:var(--r-lg); overflow:hidden;">
+  <div class="cls-stripe" style="height:5px;">
+    <span class="red"></span><span class="ochre"></span><span class="green"></span>
+    <span class="blue"></span><span class="ink"></span>
+  </div>
+  <div style="padding:32px 36px 30px; position:relative;">
+    <div class="doc-no" style="margin-bottom:10px;">FORM № 2026 / Ⅰ / 0422 · INITIALIZATION</div>
+    <h1 class="display-title" style="font-size:30px; margin:0 0 4px;">初始化資料</h1>
+    <div class="eyebrow">Ledger 92 · Inventory Manager · v2.6</div>
 
-<mat-dialog-content>
-  <p>建立空白資料或載入 Workbook</p>
-</mat-dialog-content>
+    <p style="margin-top:16px; color:var(--ink-soft); font-size:14px; line-height:1.8;">
+      歡迎回到庫存帳本。請選擇開啟方式，您可以建立全新的空白帳簿，
+      或繼續載入既有的 Workbook 檔案。
+    </p>
 
-<mat-dialog-actions class="gap-2">
-  <button matButton="elevated" color="primary" (click)="createDataset()" [disabled]="busy()">
-    建立空白資料
-  </button>
+    <div class="divider-ornament" style="margin:20px 0;"><span>❦</span></div>
 
-  <input
-    #systemFileInput
-    type="file"
-    hidden
-    accept=".xlsx,.xls"
-    (change)="handleSystemWorkbookSelected($event)"
-  />
+    <div class="grid-2 gap-6">
+      <button class="init-option" (click)="createDataset()" [disabled]="busy()">
+        <span class="stamp round" style="font-size:10px; flex-shrink:0;">空白<br>NEW</span>
+        <div style="flex:1; text-align:left;">
+          <div class="serif" style="font-size:16px; font-weight:700;">建立空白資料</div>
+          <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:4px;">
+            從零開始 · 產生預設範本
+          </div>
+        </div>
+        <span class="mat-icon" style="color:var(--ink-muted);">arrow_forward</span>
+      </button>
 
-  <button
-    matButton="elevated"
-    color="primary"
-    (click)="systemFileInput.click()"
-    [disabled]="busy()"
-  >
-    載入資料庫 Excel
-  </button>
-</mat-dialog-actions>
+      <button class="init-option" (click)="systemFileInput.click()" [disabled]="busy()">
+        <span class="stamp round green" style="font-size:10px; flex-shrink:0;">載入<br>LOAD</span>
+        <div style="flex:1; text-align:left;">
+          <div class="serif" style="font-size:16px; font-weight:700;">載入資料庫 Excel</div>
+          <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:4px;">
+            繼續既有 Workbook · .xlsx / .xls
+          </div>
+        </div>
+        <span class="mat-icon" style="color:var(--ink-muted);">arrow_forward</span>
+      </button>
+    </div>
+
+    <input
+      #systemFileInput
+      type="file"
+      hidden
+      accept=".xlsx,.xls"
+      (change)="handleSystemWorkbookSelected($event)"
+    />
+  </div>
+</div>

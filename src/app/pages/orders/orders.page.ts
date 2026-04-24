@@ -1,11 +1,4 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
-import { MatCardModule } from '@angular/material/card';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatSelectModule } from '@angular/material/select';
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatListModule } from '@angular/material/list';
 
 import { Dropzone } from '../../components/dropzone/dropzone';
 import { OrderTable } from '../../components/order-table/order-table';
@@ -14,23 +7,11 @@ import { PlatformType, PlatFormTypes } from '../../core/models';
 import { OrderImportService } from '../../core/services/order-import.service';
 import { StoreService } from '../../core/services/store.service';
 import { LayoutService } from '../../core/services';
-
 import { toErrorMessage } from '../../core/utils';
 
 @Component({
   selector: 'page-orders',
-  standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    MatCardModule,
-    MatFormFieldModule,
-    MatSelectModule,
-    MatListModule,
-    MatExpansionModule,
-    Dropzone,
-    OrderTable,
-  ],
+  imports: [Dropzone, OrderTable],
   templateUrl: './orders.page.html',
 })
 export class OrdersPage {
@@ -43,49 +24,43 @@ export class OrdersPage {
   readonly orders = computed(() => this.state().orders);
   readonly importSummary = computed(() => {
     const result = this.state().lastImportResult;
-    const importedCount = result?.importedCount ?? 0;
-    const duplicateCount = result?.duplicateCount ?? 0;
-    const errorCount = result?.errorCount ?? 0;
-
     return {
-      importedCount,
-      duplicateCount,
-      errorCount,
+      importedCount: result?.importedCount ?? 0,
+      duplicateCount: result?.duplicateCount ?? 0,
+      errorCount: result?.errorCount ?? 0,
       errors: result?.errors ?? [],
     };
   });
 
-  readonly PlatFormTypes = PlatFormTypes;
+  readonly platformMap: Record<string, string> = { A: '好蒔光', B: '仙姑', C: '綠崎' };
+  readonly platformEntries = [
+    { key: PlatFormTypes.A, label: '好蒔光' },
+    { key: PlatFormTypes.B, label: '仙姑' },
+    { key: PlatFormTypes.C, label: '綠崎' },
+  ];
   readonly selectedPlatform = signal<PlatformType>(PlatFormTypes.A);
-  setPlatform(value: string): void {
-    if (value === PlatFormTypes.A || value === PlatFormTypes.B || value === PlatFormTypes.C) {
-      this.selectedPlatform.set(value);
+
+  setPlatform(key: string): void {
+    if (key === PlatFormTypes.A || key === PlatFormTypes.B || key === PlatFormTypes.C) {
+      this.selectedPlatform.set(key);
     }
   }
 
   async handleOrderWorkbookSelected(file: File): Promise<void> {
     this.busy.set(true);
-
     try {
       const output = await this.#orderImportService.importFromFile(
-        file,
-        this.selectedPlatform(),
-        this.#storeService.snapshot,
+        file, this.selectedPlatform(), this.#storeService.snapshot,
       );
-
       this.#storeService.applyOrderImport(output);
-
       const result = output.result;
       if (result.importedCount === 0 && result.errorCount > 0) {
         this.#layoutService.showError(result.errors[0]?.reason ?? '匯入訂單失敗');
         return;
       }
-
       this.#layoutService.showMessage(
         `匯入完成：成功 ${result.importedCount}、重複 ${result.duplicateCount}、錯誤 ${result.errorCount}`,
       );
-
-      console.log('orders', this.orders());
     } catch (error) {
       this.#layoutService.showError(toErrorMessage(error, '匯入訂單失敗'));
     } finally {

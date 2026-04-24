@@ -10,12 +10,25 @@ import { Sidenav } from './components/sidenav/sidenav';
 import { InitPage } from './pages/init/init.page';
 import { DashboardPage } from './pages/dashboard/dashboard.page';
 import { OrdersPage } from './pages/orders/orders.page';
+import { ManualOrderPage } from './pages/manual-order/manual-order.page';
+import { ProductsPage } from './pages/products/products.page';
+import { ImportPage } from './pages/import/import.page';
+import { SettingsPage } from './pages/settings/settings.page';
 
 @Component({
   selector: 'app-root',
-  imports: [MatDialogModule, Toolbar, Sidenav, DashboardPage, OrdersPage],
+  imports: [
+    MatDialogModule,
+    Toolbar,
+    Sidenav,
+    DashboardPage,
+    OrdersPage,
+    ManualOrderPage,
+    ProductsPage,
+    ImportPage,
+    SettingsPage,
+  ],
   templateUrl: './app.html',
-  styleUrl: './app.css',
 })
 export class App {
   readonly #storeService = inject(StoreService);
@@ -25,7 +38,13 @@ export class App {
   readonly state = this.#storeService.state;
   readonly page = this.#layoutService.page;
   readonly isLoaded = this.#storeService.isLoaded;
+  readonly sidenavOpened = this.#layoutService.sidenavOpened;
+
   private initDialogRef: MatDialogRef<InitPage> | null = null;
+
+  gotoPage(p: string): void {
+    this.#layoutService.setPage(p);
+  }
 
   constructor() {
     effect(() => {
@@ -35,14 +54,13 @@ export class App {
         return;
       }
 
-      if (this.initDialogRef) {
-        return;
-      }
+      if (this.initDialogRef) return;
 
       this.initDialogRef = this.#dialog.open(InitPage, {
         disableClose: true,
-        width: '420px',
+        width: '560px',
         maxWidth: 'calc(100vw - 32px)',
+        panelClass: 'ledger-dialog',
       });
 
       this.initDialogRef.afterClosed().subscribe(() => {

@@ -1,15 +1,30 @@
-<app-sidenav>
-  <app-toolbar [isDirty]="state().dirty.isDirty" [lastSavedAt]="state().meta.lastSavedAt" />
-  <main class="pl-4 max-h-[100dvh-64px] py-8 overflow-y-auto overflow-x-hidden">
-    @if (isLoaded()) {
-      @switch (page()) {
-        @case ('orders') {
-          <page-orders />
-        }
-        @default {
-          <page-dashboard />
+<div class="app-shell" [class.collapsed]="!sidenavOpened()">
+  <app-sidenav />
+  <div class="main-area">
+    <app-toolbar [isDirty]="state().dirty.isDirty" [lastSavedAt]="state().meta.lastSavedAt" />
+    <main class="page-wrap">
+      @if (isLoaded()) {
+        @switch (page()) {
+          @case ('orders') {
+            <page-orders />
+          }
+          @case ('manual-order') {
+            <page-manual-order />
+          }
+          @case ('products') {
+            <page-products />
+          }
+          @case ('import') {
+            <page-import />
+          }
+          @case ('settings') {
+            <page-settings />
+          }
+          @default {
+            <page-dashboard (goto)="gotoPage($event)" />
+          }
         }
       }
-    }
-  </main>
-</app-sidenav>
+    </main>
+  </div>
+</div>

@@ -1,120 +1,141 @@
-<section class="grid grid-cols-3 gap-6 min-w-255 max-w-400">
-  <mat-card class="min-w-72 max-h-106">
-    <mat-card-header>
-      <mat-card-title>訂單匯入</mat-card-title>
-    </mat-card-header>
-    <mat-card-content class="space-y-4 mt-4">
-      <mat-form-field class="w-full">
-        <mat-label>選擇平台</mat-label>
-        <mat-select
-          aria-label="平台選擇"
-          [value]="selectedPlatform()"
-          (selectionChange)="setPlatform($event.value)"
-        >
-          <mat-option [value]="PlatFormTypes.A">好蒔光</mat-option>
-          <mat-option [value]="PlatFormTypes.B">仙姑</mat-option>
-          <mat-option [value]="PlatFormTypes.C">綠崎</mat-option>
-        </mat-select>
-      </mat-form-field>
+<div class="fade-in">
+  <!-- Masthead -->
+  <div class="masthead">
+    <div class="masthead-left">
+      <div>
+        <span class="eyebrow">Orders — Import &amp; Reconcile</span>
+        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">訂單上傳</h2>
+      </div>
+    </div>
+    <div class="masthead-right"><div class="doc-no">FOLIO / 2026-04-22</div></div>
+  </div>
 
-      <app-dropzone
-        [accept]="'.xlsx,.xls'"
-        [hint]="'支援 .xlsx、.xls 格式'"
-        [disabled]="busy()"
-        (fileSelected)="handleOrderWorkbookSelected($event)"
-        [containerClass]="'size-64 items-center flex justify-center'"
-      />
-    </mat-card-content>
-  </mat-card>
-  <mat-card
-    class="min-w-72 col-span-2 overflow-hidden border border-primary/10 bg-gradient-to-br from-primary-container/35 via-surface to-surface shadow-sm"
-  >
-    <mat-card-header>
-      <mat-card-title class="text-2xl font-semibold tracking-wide text-on-surface">
-        最新匯入效能報告
-      </mat-card-title>
-    </mat-card-header>
-    <mat-card-content class="mt-4 space-y-5">
-      <div class="grid gap-4 md:grid-cols-3">
-        <div class="rounded-3xl bg-surface/85 px-5 py-4 shadow-sm ring-1 ring-green-200/70">
-          <div class="flex items-center gap-4">
-            <div class="flex size-12 items-center justify-center rounded-full bg-green-100">
-              <span class="size-3 rounded-full bg-green-500"></span>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="text-lg font-semibold text-on-surface">成功匯入訂單</div>
-              <div class="text-sm text-on-surface/60">無資料衝突，已同步庫存</div>
-            </div>
-            <div class="text-4xl font-bold tracking-tight text-green-600">
-              {{ importSummary().importedCount }}
-            </div>
+  <div class="grid-3 gap-6" style="margin-top:22px;">
+    <!-- 匯入卡 -->
+    <div class="file-card">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">STEP 01 · 匯入</div>
+          <div class="file-card-title">選擇平台檔案</div>
+        </div>
+        <span class="doc-no">.xlsx / .xls</span>
+      </div>
+      <div class="file-card-body" style="display:flex; flex-direction:column; gap:16px;">
+        <div>
+          <div class="eyebrow" style="margin-bottom:8px;">平台別</div>
+          <div class="platform-picker">
+            @for (entry of platformEntries; track entry.key) {
+              <button
+                class="plat-chip"
+                [class.active]="selectedPlatform() === entry.key"
+                (click)="setPlatform(entry.key)"
+              >
+                <span class="mono" style="font-size:10px; letter-spacing:0.2em; color:var(--ink-faint);">{{ entry.key }}</span>
+                <span class="serif">{{ entry.label }}</span>
+              </button>
+            }
           </div>
         </div>
-        <div class="rounded-3xl bg-surface/85 px-5 py-4 shadow-sm ring-1 ring-amber-200/70">
-          <div class="flex items-center gap-4">
-            <div class="flex size-12 items-center justify-center rounded-full bg-amber-100">
-              <span class="size-3 rounded-full bg-amber-500"></span>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="text-lg font-semibold text-on-surface">偵測到重複項</div>
-              <div class="text-sm text-on-surface/60">已自動略過相同訂單編號</div>
-            </div>
-            <div class="text-4xl font-bold tracking-tight text-amber-500">
-              {{ importSummary().duplicateCount }}
-            </div>
-          </div>
-        </div>
-        <div class="rounded-3xl bg-surface/85 px-5 py-4 shadow-sm ring-1 ring-rose-200/70">
-          <div class="flex items-center gap-4">
-            <div class="flex size-12 items-center justify-center rounded-full bg-rose-100">
-              <span class="size-3 rounded-full bg-rose-500"></span>
-            </div>
-            <div class="min-w-0 flex-1">
-              <div class="text-lg font-semibold text-on-surface">格式錯誤筆數</div>
-              <div class="text-sm text-on-surface/60">欄位遺漏或資料型態不符</div>
-            </div>
-            <div class="text-4xl font-bold tracking-tight text-rose-600">
-              {{ importSummary().errorCount }}
-            </div>
-          </div>
+
+        <app-dropzone
+          accept=".xlsx,.xls"
+          hint="或點選開啟檔案總管 · .xlsx / .xls"
+          [disabled]="busy()"
+          (fileSelected)="handleOrderWorkbookSelected($event)"
+        />
+
+        <div class="divider-ornament"><span>❦</span></div>
+        <div class="mono" style="font-size:11px; color:var(--ink-muted); line-height:1.7;">
+          · 首列需為欄位名稱<br>
+          · 訂單編號欄位不得為空<br>
+          · 金額需為阿拉伯數字
         </div>
       </div>
+    </div>
 
-      <mat-expansion-panel
-        class="rounded-3xl !bg-surface/80 ring-1 ring-rose-200/70"
-        [hideToggle]="importSummary().errorCount === 0"
-        [disabled]="importSummary().errorCount === 0"
-      >
-        <mat-expansion-panel-header class="min-h-20 px-5">
-          <mat-panel-title class="text-lg font-semibold text-rose-700"> 錯誤明細 </mat-panel-title>
-          <mat-panel-description class="justify-end text-base font-semibold text-rose-600">
-            {{ importSummary().errorCount }} 筆
-          </mat-panel-description>
-        </mat-expansion-panel-header>
-        @if (importSummary().errors.length) {
-          <mat-list class="px-3 pb-3">
-            @for (error of importSummary().errors; track $index) {
-              <mat-list-item class="!h-auto">
-                <div class="py-2 text-sm leading-6 text-on-surface">
-                  第 {{ error.rowNumber }} 列 - {{ error.field }}：{{ error.reason }}
-                </div>
-              </mat-list-item>
-            }
-          </mat-list>
-        } @else {
-          <div class="px-5 pb-5 text-sm text-on-surface/60">
-            目前沒有錯誤資料，這次匯入流程看起來很乾淨。
+    <!-- 匯入結果 -->
+    <div class="file-card" style="grid-column:span 2;">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">STEP 02 · 結果</div>
+          <div class="file-card-title">最新匯入效能報告</div>
+        </div>
+        <span class="stamp green" style="font-size:11px;">已核章</span>
+      </div>
+      <div class="file-card-body">
+        <div class="grid-3 gap-4">
+          <div class="result-card">
+            <div style="width:40px; height:40px; border-radius:10px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--mint-600); flex-shrink:0;">
+              <span class="mat-icon">check_circle</span>
+            </div>
+            <div style="flex:1;">
+              <div class="eyebrow">成功匯入訂單</div>
+              <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--mint-600);">{{ importSummary().importedCount }}</div>
+              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">無資料衝突，已同步庫存</div>
+            </div>
           </div>
+          <div class="result-card">
+            <div style="width:40px; height:40px; border-radius:10px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--warn); flex-shrink:0;">
+              <span class="mat-icon">content_copy</span>
+            </div>
+            <div style="flex:1;">
+              <div class="eyebrow">偵測到重複項</div>
+              <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--warn);">{{ importSummary().duplicateCount }}</div>
+              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">已自動略過相同訂單編號</div>
+            </div>
+          </div>
+          <div class="result-card">
+            <div style="width:40px; height:40px; border-radius:10px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--danger); flex-shrink:0;">
+              <span class="mat-icon">error</span>
+            </div>
+            <div style="flex:1;">
+              <div class="eyebrow">格式錯誤筆數</div>
+              <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--danger);">{{ importSummary().errorCount }}</div>
+              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">欄位遺漏或型態不符</div>
+            </div>
+          </div>
+        </div>
+
+        @if (importSummary().errors.length) {
+          <div class="divider-ornament" style="margin:20px 0 14px;"><span>錯誤明細 · ERROR DETAILS</span></div>
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th style="width:60px;">列</th>
+                <th style="width:140px;">欄位</th>
+                <th>原因</th>
+                <th style="width:80px; text-align:right;">處置</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (e of importSummary().errors; track $index) {
+                <tr>
+                  <td class="mono">{{ e.rowNumber.toString().padStart(3,'0') }}</td>
+                  <td><span class="tag red">{{ e.field }}</span></td>
+                  <td style="color:var(--ink-soft);">{{ e.reason }}</td>
+                  <td style="text-align:right;"><button class="btn btn-sm btn-ghost">修正</button></td>
+                </tr>
+              }
+            </tbody>
+          </table>
         }
-      </mat-expansion-panel>
-    </mat-card-content>
-  </mat-card>
-  <mat-card class="min-w-72 col-span-3">
-    <mat-card-header>
-      <mat-card-title>訂單列表</mat-card-title>
-    </mat-card-header>
-    <mat-card-content class="mt-4">
-      <order-table [orders]="orders()"></order-table>
-    </mat-card-content>
-  </mat-card>
-</section>
+      </div>
+    </div>
+  </div>
+
+  <!-- 訂單列表 -->
+  <div class="file-card" style="margin-top:24px;">
+    <div class="file-card-head">
+      <div>
+        <div class="eyebrow">LEDGER · 本次已匯入</div>
+        <div class="file-card-title">訂單列表</div>
+      </div>
+      <div style="display:flex; gap:8px; align-items:center;">
+        <span class="tag">{{ orders().length }} 筆</span>
+        <button class="btn btn-sm btn-ghost"><span class="mat-icon sm">filter_list</span>篩選</button>
+        <button class="btn btn-sm"><span class="mat-icon sm">download</span>匯出</button>
+      </div>
+    </div>
+    <order-table [orders]="orders()" />
+  </div>
+</div>
