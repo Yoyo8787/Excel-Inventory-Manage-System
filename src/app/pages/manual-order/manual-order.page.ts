@@ -7,13 +7,15 @@ import { nanoid } from 'nanoid';
 
 import { StoreService } from '../../core/services/store.service';
 import { LayoutService } from '../../core/services/layout.service';
-import { PlatformType, PlatFormTypes } from '../../core/models';
+import { PlatFormTypes } from '../../core/models';
+import type { PlatformType, Product } from '../../core/models';
+import { ProductAutocompleteComponent } from '../../components/product-autocomplete/product-autocomplete';
 
-interface LineItem { sku: string; qty: number; price: number; }
+interface LineItem { productId: string | null; qty: number; price: number; }
 
 @Component({
   selector: 'page-manual-order',
-  imports: [FormsModule, MatFormFieldModule, MatSelectModule, MatInputModule],
+  imports: [FormsModule, MatFormFieldModule, MatSelectModule, MatInputModule, ProductAutocompleteComponent],
   templateUrl: './manual-order.page.html',
 })
 export class ManualOrderPage {
@@ -32,23 +34,42 @@ export class ManualOrderPage {
   readonly buyer = signal('');
   readonly phone = signal('');
   readonly addr = signal('');
-  readonly lines = signal<LineItem[]>([{ sku: '', qty: 1, price: 0 }]);
+  readonly lines = signal<LineItem[]>([{ productId: null, qty: 1, price: 0 }]);
+
+  readonly products = computed(() =>
+    [...this.state().products].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
+  );
 
   readonly total = computed(() => this.lines().reduce((s, l) => s + l.qty * l.price, 0));
 
-  /** 依 SKU 查詢商品名稱；找不到則回傳 SKU 本身 */
-  getProductName(sku: string): string {
-    if (!sku) return '—';
-    return this.state().products.find(p => p.sku === sku)?.name ?? sku;
+  getProductName(productId: string | null): string {
+    if (!productId) return '—';
+    return this.#getProduct(productId)?.name ?? productId;
   }
 
-  updateLine(i: number, key: keyof LineItem, v: string | number): void {
-    this.lines.update(ls => ls.map((l, idx) => idx === i ? { ...l, [key]: v } : l));
+  updateLine(i: number, key: keyof LineItem, v: string | number | null): void {
+    this.lines.update(ls => ls.map((l, idx) => {
+      if (idx !== i) return l;
+
+      if (key === 'productId') {
+        return { ...l, productId: typeof v === 'string' && v.length > 0 ? v : null };
+      }
+
+      const value = typeof v === 'number' ? v : Number(v);
+      const normalized = Number.isFinite(value) ? Math.max(0, value) : 0;
+      return { ...l, [key]: normalized };
+    }));
   }
-  addLine(): void { this.lines.update(ls => [...ls, { sku: '', qty: 1, price: 0 }]); }
+  addLine(): void { this.lines.update(ls => [...ls, { productId: null, qty: 1, price: 0 }]); }
   rmLine(i: number): void { this.lines.update(ls => ls.filter((_, idx) => idx !== i)); }
 
   submit(): void {
+    const lineError = this.#firstLineError();
+    if (lineError) {
+      this.#layout.showMessage(lineError);
+      return;
+    }
+
     const no = this.orderNo() || `MN-${Math.floor(Math.random() * 90000 + 10000)}`;
     const now = new Date().toISOString();
     this.#store.applyOrderImport({
@@ -67,7 +88,7 @@ export class ManualOrderPage {
         importedAt: now,
         lines: this.lines().map((l) => ({
           lineId: nanoid(8),
-          platformProductName: this.getProductName(l.sku),
+          platformProductName: this.getProductName(l.productId),
           quantity: l.qty,
           unitPrice: l.price,
           subtotal: l.qty * l.price,
@@ -77,7 +98,29 @@ export class ManualOrderPage {
       }],
     });
     this.#layout.showMessage(`訂單 ${no} 已建立`);
-    this.lines.set([{ sku: '', qty: 1, price: 0 }]);
+    this.lines.set([{ productId: null, qty: 1, price: 0 }]);
     this.orderNo.set('');
+  }
+
+  #firstLineError(): string | null {
+    if (this.products().length === 0) {
+      return '請先在商品管理新增商品，再建立手動訂單';
+    }
+
+    for (const [index, line] of this.lines().entries()) {
+      if (!line.productId || !this.#getProduct(line.productId)) {
+        return `第 ${index + 1} 項請選擇既有商品`;
+      }
+
+      if (!Number.isFinite(line.qty) || line.qty <= 0) {
+        return `第 ${index + 1} 項數量需大於 0`;
+      }
+    }
+
+    return null;
+  }
+
+  #getProduct(productId: string): Product | undefined {
+    return this.state().products.find(p => p.id === productId);
   }
 }

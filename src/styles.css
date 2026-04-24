@@ -623,6 +623,36 @@ span.mat-icon.lg {
   border-bottom: 1px solid var(--mint-500);
 }
 
+.product-autocomplete-input {
+  font-family: var(--font-sans);
+}
+
+.product-option {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+  line-height: 1.25;
+  padding: 3px 0;
+}
+
+.product-option-name {
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-option-id {
+  color: var(--ink-muted);
+  font-size: 10.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ── Ledger Table ─────────────────────────────────────────── */
 .ledger-table {
   width: 100%;

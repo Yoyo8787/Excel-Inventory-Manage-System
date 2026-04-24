@@ -18,7 +18,7 @@
           <input
             [value]="q()"
             (input)="q.set($any($event.target).value)"
-            placeholder="搜尋 SKU 或品名 ······"
+            placeholder="搜尋商品 ID 或品名 ······"
             style="flex:1; background:transparent; border:none; outline:none; font-size:15px; color:var(--ink); font-family:var(--font-sans);"
           />
           <span class="mono" style="font-size:11px; color:var(--ink-faint);">
@@ -41,7 +41,7 @@
           <thead>
             <tr>
               <th class="row-num">№</th>
-              <th style="width:130px;">SKU</th>
+              <th style="width:180px;">商品 ID</th>
               <th>品名</th>
               <th class="num" style="width:100px;">安全庫存量</th>
               <th class="num" style="width:70px;">配對數</th>
@@ -56,7 +56,7 @@
                 (click)="selectProduct(p)"
               >
                 <td class="row-num">{{ (i+1).toString().padStart(3,'0') }}</td>
-                <td class="mono">{{ p.sku ?? '—' }}</td>
+                <td class="mono" style="font-size:11px;">{{ p.id }}</td>
                 <td style="font-weight:600;">{{ p.name }}</td>
                 <td class="num mono">{{ p.lowStockThreshold }}</td>
                 <td class="num">
@@ -114,7 +114,7 @@
             <div class="eyebrow" style="margin-bottom:4px;">實際貨物 · MASTER</div>
             <div class="serif" style="font-size:16px; font-weight:700;">{{ active()!.name }}</div>
             <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:2px;">
-              {{ active()!.sku ?? '無 SKU' }}
+              ID：{{ active()!.id }}
             </div>
             <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:6px;">
               安全庫存量：{{ active()!.lowStockThreshold }}

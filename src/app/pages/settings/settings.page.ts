@@ -1,8 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatInputModule } from '@angular/material/input';
+
+import { StoreService } from '../../core/services/store.service';
 
 @Component({
   selector: 'page-settings',
@@ -10,6 +12,9 @@ import { MatInputModule } from '@angular/material/input';
   templateUrl: './settings.page.html',
 })
 export class SettingsPage {
+  readonly #store = inject(StoreService);
+  readonly state = this.#store.state;
+
   /** 欄位對應表 — 各平台 Excel 欄位名稱至系統欄位的映射設定 */
   readonly platformMappings = [
     {
@@ -32,7 +37,7 @@ export class SettingsPage {
       plat: '綠崎',
       fields: [
         ['訂單編號', 'OrderID'],
-        ['商品名稱', 'SKU-Name'],
+        ['商品名稱', 'Product Name'],
         ['金額', 'Total'],
       ],
     },
@@ -43,4 +48,9 @@ export class SettingsPage {
   readonly showLowStockAlert = signal(true);
   readonly allowNegativeStock = signal(false);
   readonly showAlternateRows = signal(true);
+
+  updateDefaultLowStockThreshold(value: string | number): void {
+    const parsed = typeof value === 'number' ? value : Number(value);
+    this.#store.updateDefaultLowStockThreshold(parsed);
+  }
 }

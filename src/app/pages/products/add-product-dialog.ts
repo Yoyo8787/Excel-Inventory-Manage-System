@@ -1,9 +1,13 @@
 import { Component, inject } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { MatDialogRef } from '@angular/material/dialog';
+import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { nanoid } from 'nanoid';
 
 import type { Product } from '../../core/models';
+
+export interface AddProductDialogData {
+  defaultLowStockThreshold: number;
+}
 
 @Component({
   selector: 'app-add-product-dialog',
@@ -24,13 +28,9 @@ import type { Product } from '../../core/models';
             <span class="label">品名 *</span>
             <input formControlName="name" type="text" placeholder="商品名稱">
           </label>
-          <label class="field mono">
-            <span class="label">SKU</span>
-            <input formControlName="sku" type="text" placeholder="選填">
-          </label>
           <label class="field">
             <span class="label">安全庫存量</span>
-            <input formControlName="lowStockThreshold" type="number" min="0" placeholder="0">
+            <input formControlName="lowStockThreshold" type="number" min="0" placeholder="20">
           </label>
           <label class="field">
             <span class="label">備註</span>
@@ -51,11 +51,14 @@ import type { Product } from '../../core/models';
 export class AddProductDialog {
   readonly #fb = inject(FormBuilder);
   readonly #dialogRef = inject(MatDialogRef<AddProductDialog>);
+  readonly #data = inject<AddProductDialogData>(MAT_DIALOG_DATA, { optional: true });
 
   readonly form = this.#fb.group({
     name: ['', Validators.required],
-    sku: [''],
-    lowStockThreshold: [0, [Validators.required, Validators.min(0)]],
+    lowStockThreshold: [
+      this.#data?.defaultLowStockThreshold ?? 20,
+      [Validators.required, Validators.min(0)],
+    ],
     note: [''],
   });
 
@@ -66,7 +69,6 @@ export class AddProductDialog {
     const product: Product = {
       id: nanoid(),
       name: v.name!,
-      sku: v.sku || undefined,
       lowStockThreshold: v.lowStockThreshold ?? 0,
       note: v.note || undefined,
       createdAt: now,

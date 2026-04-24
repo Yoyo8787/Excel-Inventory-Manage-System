@@ -63,8 +63,7 @@
           <thead>
             <tr>
               <th class="row-num">#</th>
-              <th style="width:160px;">SKU</th>
-              <th>品名（自動對照）</th>
+              <th>商品</th>
               <th class="num" style="width:80px;">數量</th>
               <th class="num" style="width:100px;">單價</th>
               <th class="num" style="width:100px;">小計</th>
@@ -76,11 +75,12 @@
               <tr>
                 <td class="row-num">{{ (i+1).toString().padStart(2,'0') }}</td>
                 <td>
-                  <input class="inline-input mono" placeholder="SKU-····"
-                         [value]="l.sku" (input)="updateLine(i,'sku',$any($event.target).value)" />
-                </td>
-                <td style="color:var(--ink-muted); font-size:13px;">
-                  {{ getProductName(l.sku) }}
+                  <app-product-autocomplete
+                    [products]="products()"
+                    [productId]="l.productId"
+                    placeholder="搜尋商品名稱或 ID"
+                    (productIdChange)="updateLine(i,'productId',$event)"
+                  />
                 </td>
                 <td class="num">
                   <input class="inline-input mono" type="number" style="text-align:right;"

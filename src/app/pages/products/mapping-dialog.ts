@@ -82,7 +82,7 @@ export interface MappingDialogData {
                   <select formControlName="productId">
                     <option value="">—— 選擇商品 ——</option>
                     @for (p of data.products; track p.id) {
-                      <option [value]="p.id">{{ p.name }}{{ p.sku ? ' (' + p.sku + ')' : '' }}</option>
+                      <option [value]="p.id">{{ p.name }} ({{ p.id }})</option>
                     }
                   </select>
                 </label>

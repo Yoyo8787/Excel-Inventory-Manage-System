@@ -17,16 +17,10 @@
           <div class="eyebrow">FORM · 進貨登記</div>
           <div class="file-card-title">新增進貨單</div>
         </div>
-        <span class="doc-no">DRAFT</span>
+        <span class="doc-no">INBOUND</span>
       </div>
       <div class="file-card-body">
         <div class="grid-2 gap-6">
-          <mat-form-field appearance="outline" style="width:100%;">
-            <mat-label>供應商</mat-label>
-            <input matInput placeholder="供應商名稱"
-                   [value]="supplier()" (input)="supplier.set($any($event.target).value)" />
-          </mat-form-field>
-
           <mat-form-field appearance="outline" style="width:100%;">
             <mat-label>進貨日期</mat-label>
             <input matInput type="date"
@@ -49,11 +43,8 @@
           <thead>
             <tr>
               <th class="row-num">#</th>
-              <th style="width:140px;">SKU</th>
-              <th>品名</th>
+              <th>商品</th>
               <th class="num" style="width:80px;">數量</th>
-              <th class="num" style="width:90px;">單價</th>
-              <th class="num" style="width:100px;">小計</th>
               <th style="width:40px;"></th>
             </tr>
           </thead>
@@ -61,15 +52,16 @@
             @for (l of lines(); track $index; let i = $index) {
               <tr>
                 <td class="row-num">{{ (i+1).toString().padStart(2,'0') }}</td>
-                <td><input class="inline-input mono" placeholder="SKU-····"
-                           [value]="l.sku" (input)="updateLine(i,'sku',$any($event.target).value)" /></td>
-                <td><input class="inline-input" placeholder="商品名稱"
-                           [value]="l.name" (input)="updateLine(i,'name',$any($event.target).value)" /></td>
-                <td class="num"><input class="inline-input mono" type="number" style="text-align:right;"
+                <td>
+                  <app-product-autocomplete
+                    [products]="products()"
+                    [productId]="l.productId"
+                    placeholder="搜尋商品名稱或 ID"
+                    (productIdChange)="updateLine(i,'productId',$event)"
+                  />
+                </td>
+                <td class="num"><input class="inline-input mono" type="number" min="0" step="1" style="text-align:right;"
                            [value]="l.qty" (input)="updateLine(i,'qty',+$any($event.target).value||0)" /></td>
-                <td class="num"><input class="inline-input mono" type="number" style="text-align:right;"
-                           [value]="l.price" (input)="updateLine(i,'price',+$any($event.target).value||0)" /></td>
-                <td class="num mono">$ {{ (l.qty * l.price).toLocaleString() }}</td>
                 <td>
                   @if (lines().length > 1) {
                     <button class="btn btn-sm btn-ghost btn-icon" (click)="rmLine(i)">
@@ -80,8 +72,8 @@
               </tr>
             }
             <tr>
-              <td colspan="5" style="text-align:right; font-family:var(--font-mono); letter-spacing:0.14em; color:var(--ink-muted); font-size:11px; padding:12px;">合計</td>
-              <td class="num display-title" style="font-size:18px; color:var(--danger);">$ {{ total().toLocaleString() }}</td>
+              <td colspan="2" style="text-align:right; font-family:var(--font-mono); letter-spacing:0.14em; color:var(--ink-muted); font-size:11px; padding:12px;">合計數量</td>
+              <td class="num display-title" style="font-size:18px; color:var(--mint-600);">{{ totalQty().toLocaleString() }}</td>
               <td></td>
             </tr>
           </tbody>
@@ -90,9 +82,6 @@
         <div style="display:flex; gap:8px; margin-top:14px;">
           <button class="btn btn-ghost btn-sm" (click)="addLine()">
             <span class="mat-icon sm">add</span>新增項次
-          </button>
-          <button class="btn btn-ghost btn-sm">
-            <span class="mat-icon sm">auto_awesome</span>依低庫存自動帶入
           </button>
         </div>
       </div>
@@ -107,22 +96,14 @@
         </div>
       </div>
       <div class="file-card-body">
-        <div class="summary-row"><span>項次數</span><span class="mono">{{ lines().length }} 項</span></div>
+        <div class="summary-row"><span>項次數</span><span class="mono">{{ activeLineCount() }} 項</span></div>
         <div class="summary-row"><span>總數量</span><span class="mono">{{ totalQty() }} 件</span></div>
-        <div class="summary-row"><span>供應商</span><span class="serif">{{ supplier() || '—' }}</span></div>
         <div class="summary-row"><span>日期</span><span class="mono">{{ date() }}</span></div>
-        <div class="divider-ornament" style="margin:14px 0;"><span>❦</span></div>
-        <div class="summary-row" style="align-items:baseline;">
-          <span class="serif" style="font-size:14px;">應付總額</span>
-          <span class="display-title" style="font-size:28px; color:var(--danger);">$ {{ total().toLocaleString() }}</span>
-        </div>
+        <div class="summary-row"><span>商品資料</span><span class="mono">{{ products().length }} 筆</span></div>
 
         <div style="margin-top:20px; display:flex; flex-direction:column; gap:8px;">
           <button class="btn btn-primary" style="width:100%; justify-content:center; padding:10px;" (click)="submit()">
             <span class="mat-icon sm">verified</span>送出入庫
-          </button>
-          <button class="btn btn-ghost" style="width:100%; justify-content:center;">
-            <span class="mat-icon sm">save</span>存為草稿
           </button>
         </div>
 

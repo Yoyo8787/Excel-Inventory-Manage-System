@@ -29,7 +29,7 @@ export class ProductsPage {
     if (!query) return products;
     return products.filter(p =>
       p.name.toLowerCase().includes(query) ||
-      (p.sku ?? '').toLowerCase().includes(query)
+      p.id.toLowerCase().includes(query)
     );
   });
 
@@ -74,6 +74,9 @@ export class ProductsPage {
   openAddProduct(): void {
     this.#dialog.open(AddProductDialog, {
       panelClass: 'ledger-dialog',
+      data: {
+        defaultLowStockThreshold: this.state().settings.defaultLowStockThreshold,
+      },
     }).afterClosed().subscribe((product: Product | null) => {
       if (!product) return;
       this.#store.addProduct(product);

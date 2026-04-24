@@ -2,6 +2,7 @@ import { computed, Injectable, signal } from '@angular/core';
 
 import {
   AppState,
+  InboundRecord,
   ImportJobResult,
   MappingId,
   Order,
@@ -9,7 +10,7 @@ import {
   Product,
   ProductId,
   UnmatchedProduct,
-  createEmptyAppState
+  createEmptyAppState,
 } from '../models';
 
 export interface OrderImportApplyPayload {
@@ -31,7 +32,7 @@ export class StoreService {
 
   readonly unmatchedProducts = computed<UnmatchedProduct[]>(() => {
     const { orders, mappings } = this.#state();
-    const mappingSet = new Set(mappings.map(m => `${m.platform}::${m.platformProductName}`));
+    const mappingSet = new Set(mappings.map((m) => `${m.platform}::${m.platformProductName}`));
     const seen = new Set<string>();
     const result: UnmatchedProduct[] = [];
 
@@ -57,6 +58,25 @@ export class StoreService {
 
   readonly unmatchedCount = computed(() => this.unmatchedProducts().length);
 
+  readonly lowStockProducts = computed(() => {
+    const { products, inbounds } = this.#state();
+    const inboundMap = new Map<ProductId, number>();
+
+    for (const record of inbounds) {
+      const current = inboundMap.get(record.productId) ?? 0;
+      inboundMap.set(record.productId, current + record.quantity);
+    }
+
+    return products
+      .map((p) => ({
+        ...p,
+        stockQty: inboundMap.get(p.id) ?? 0,
+      }))
+      .filter((p) => {
+        return p.stockQty <= p.lowStockThreshold;
+      });
+  });
+
   get snapshot(): AppState {
     return this.#state();
   }
@@ -69,29 +89,34 @@ export class StoreService {
       ...next,
       meta: {
         ...next.meta,
-        loadedAt: now
+        loadedAt: now,
       },
       dirty: {
         isDirty: true,
-        reasons: ['create_dataset']
-      }
+        reasons: ['create_dataset'],
+      },
     });
   }
 
   loadDataset(state: AppState, datasetName?: string): void {
     const now = new Date().toISOString();
+    const base = createEmptyAppState();
 
     this.#state.set({
       ...state,
+      settings: {
+        ...base.settings,
+        ...(state.settings ?? {}),
+      },
       meta: {
         ...state.meta,
         datasetName: datasetName ?? state.meta.datasetName,
-        loadedAt: now
+        loadedAt: now,
       },
       dirty: {
         isDirty: false,
-        reasons: []
-      }
+        reasons: [],
+      },
     });
   }
 
@@ -106,8 +131,8 @@ export class StoreService {
           ...current,
           dirty: {
             ...current.dirty,
-            isDirty: true
-          }
+            isDirty: true,
+          },
         };
       }
 
@@ -115,8 +140,8 @@ export class StoreService {
         ...current,
         dirty: {
           isDirty: true,
-          reasons: [...current.dirty.reasons, reason]
-        }
+          reasons: [...current.dirty.reasons, reason],
+        },
       };
     });
   }
@@ -126,8 +151,8 @@ export class StoreService {
       ...current,
       dirty: {
         isDirty: false,
-        reasons: []
-      }
+        reasons: [],
+      },
     }));
   }
 
@@ -138,63 +163,80 @@ export class StoreService {
       ...current,
       meta: {
         ...current.meta,
-        lastSavedAt: now
+        lastSavedAt: now,
       },
       dirty: {
         isDirty: false,
-        reasons: []
-      }
+        reasons: [],
+      },
     }));
   }
 
   setLastImportResult(result: ImportJobResult | null): void {
     this.#state.update((current) => ({
       ...current,
-      lastImportResult: result
+      lastImportResult: result,
     }));
   }
 
   addProduct(product: Product): void {
-    this.#state.update(s => ({
+    this.#state.update((s) => ({
       ...s,
       products: [...s.products, product],
-      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'product_add') }
+      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'product_add') },
+    }));
+  }
+
+  updateDefaultLowStockThreshold(value: number): void {
+    const threshold = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
+
+    this.#state.update((s) => ({
+      ...s,
+      settings: {
+        ...s.settings,
+        defaultLowStockThreshold: threshold,
+      },
+      dirty: {
+        isDirty: true,
+        reasons: this.#appendDirtyReason(s.dirty.reasons, 'settings_update'),
+      },
     }));
   }
 
   deleteProduct(productId: ProductId): void {
-    this.#state.update(s => ({
+    this.#state.update((s) => ({
       ...s,
-      products: s.products.filter(p => p.id !== productId),
+      products: s.products.filter((p) => p.id !== productId),
       mappings: s.mappings
-        .map(m => ({ ...m, items: m.items.filter(i => i.productId !== productId) }))
-        .filter(m => m.items.length > 0),
-      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'product_delete') }
+        .map((m) => ({ ...m, items: m.items.filter((i) => i.productId !== productId) }))
+        .filter((m) => m.items.length > 0),
+      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'product_delete') },
     }));
   }
 
   addMapping(mapping: PlatformProductMapping): void {
-    this.#state.update(s => ({
+    this.#state.update((s) => ({
       ...s,
       mappings: [...s.mappings, mapping],
-      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'mapping_add') }
+      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'mapping_add') },
     }));
   }
 
   deleteMapping(mappingId: MappingId): void {
-    this.#state.update(s => ({
+    this.#state.update((s) => ({
       ...s,
-      mappings: s.mappings.filter(m => m.id !== mappingId),
-      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'mapping_delete') }
+      mappings: s.mappings.filter((m) => m.id !== mappingId),
+      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'mapping_delete') },
     }));
   }
 
   applyOrderImport(payload: OrderImportApplyPayload): void {
     this.#state.update((current) => {
       const loadedAt = current.meta.loadedAt ?? new Date().toISOString();
-      const nextDirtyReasons = payload.orders.length > 0
-        ? this.#appendDirtyReason(current.dirty.reasons, 'import_orders')
-        : current.dirty.reasons;
+      const nextDirtyReasons =
+        payload.orders.length > 0
+          ? this.#appendDirtyReason(current.dirty.reasons, 'import_orders')
+          : current.dirty.reasons;
 
       return {
         ...current,
@@ -203,8 +245,28 @@ export class StoreService {
         lastImportResult: payload.result,
         dirty: {
           isDirty: current.dirty.isDirty || payload.orders.length > 0,
-          reasons: nextDirtyReasons
-        }
+          reasons: nextDirtyReasons,
+        },
+      };
+    });
+  }
+
+  applyInbound(records: InboundRecord[]): void {
+    this.#state.update((current) => {
+      const loadedAt = current.meta.loadedAt ?? new Date().toISOString();
+      const nextDirtyReasons =
+        records.length > 0
+          ? this.#appendDirtyReason(current.dirty.reasons, 'inbound_add')
+          : current.dirty.reasons;
+
+      return {
+        ...current,
+        meta: { ...current.meta, loadedAt },
+        inbounds: [...current.inbounds, ...records],
+        dirty: {
+          isDirty: current.dirty.isDirty || records.length > 0,
+          reasons: nextDirtyReasons,
+        },
       };
     });
   }

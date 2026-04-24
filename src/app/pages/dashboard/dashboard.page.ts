@@ -16,10 +16,11 @@ export class DashboardPage {
 
   readonly stats = computed(() => {
     const s = this.state();
-    const todayOrders = s.orders.filter(o => o.orderDate === this.today);
+    const todayOrders = s.orders.filter((o) => o.orderDate === this.today);
     const todayRevenue = todayOrders.reduce((sum, o) => sum + (o.amountTotal ?? 0), 0);
-    const pendingOrders = s.orders.filter(o => o.status === '尚未出貨');
+    const pendingOrders = s.orders.filter((o) => o.status === '尚未出貨');
     const unmatchedCount = this.#store.unmatchedCount();
+    const lowStockCount = this.#store.lowStockProducts().length;
 
     return [
       {
@@ -31,15 +32,13 @@ export class DashboardPage {
       {
         label: '待出貨',
         valueStr: pendingOrders.length.toLocaleString(),
-        sub: unmatchedCount > 0
-          ? `${unmatchedCount} 項未配對`
-          : '所有訂單已配對',
+        sub: unmatchedCount > 0 ? `${unmatchedCount} 項未配對` : '所有訂單已配對',
         tone: 'ochre',
       },
       {
-        label: '庫存品項',
-        valueStr: s.products.length.toLocaleString(),
-        sub: `進貨紀錄 ${s.inbounds.length} 筆`,
+        label: '低庫存',
+        valueStr: lowStockCount.toLocaleString(),
+        sub: `共 ${s.products.length} 項產品`,
         tone: 'green',
       },
       {
@@ -51,24 +50,24 @@ export class DashboardPage {
     ];
   });
 
+  readonly lowStockProducts = computed(() => this.#store.lowStockProducts());
+
   readonly recentOrders = computed(() =>
-    [...this.state().orders]
-      .sort((a, b) => b.importedAt.localeCompare(a.importedAt))
-      .slice(0, 8)
+    [...this.state().orders].sort((a, b) => b.importedAt.localeCompare(a.importedAt)).slice(0, 8),
   );
 
   readonly unmatchedProducts = this.#store.unmatchedProducts;
 
   readonly inboundTotalQty = computed(() =>
-    this.state().inbounds.reduce((s, r) => s + r.quantity, 0)
+    this.state().inbounds.reduce((s, r) => s + r.quantity, 0),
   );
 
   readonly orderStatusSummary = computed(() => {
     const orders = this.state().orders;
     return {
-      pending:   orders.filter(o => o.status === '尚未出貨').length,
-      shipped:   orders.filter(o => o.status === '已出貨').length,
-      other:     orders.filter(o => o.status !== '尚未出貨' && o.status !== '已出貨').length,
+      pending: orders.filter((o) => o.status === '尚未出貨').length,
+      shipped: orders.filter((o) => o.status === '已出貨').length,
+      other: orders.filter((o) => o.status !== '尚未出貨' && o.status !== '已出貨').length,
     };
   });
 
@@ -78,7 +77,10 @@ export class DashboardPage {
 
   sparkColor(tone: string): string {
     const map: Record<string, string> = {
-      red: 'var(--danger)', ochre: 'var(--warn)', green: 'var(--mint-500)', blue: 'var(--info)',
+      red: 'var(--danger)',
+      ochre: 'var(--warn)',
+      green: 'var(--mint-500)',
+      blue: 'var(--info)',
     };
     return map[tone] ?? 'var(--mint-500)';
   }

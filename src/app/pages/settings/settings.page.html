@@ -47,7 +47,13 @@
       <div class="file-card-body">
         <mat-form-field appearance="outline" style="width: 100%; margin-bottom: 14px" class="mono">
           <mat-label>全域安全庫存量</mat-label>
-          <input matInput type="number" value="20" />
+          <input
+            matInput
+            type="number"
+            min="0"
+            [value]="state().settings.defaultLowStockThreshold"
+            (input)="updateDefaultLowStockThreshold($any($event.target).value)"
+          />
         </mat-form-field>
 
         <mat-form-field appearance="outline" style="width: 100%; margin-bottom: 14px" class="mono">

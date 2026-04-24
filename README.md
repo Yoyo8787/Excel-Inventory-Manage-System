@@ -123,6 +123,10 @@ export interface SystemMeta {
   version: 'v1';
 }
 
+export interface AppSettings {
+  defaultLowStockThreshold: number;
+}
+
 export interface DirtyState {
   isDirty: boolean;
   reasons: string[];
@@ -130,7 +134,6 @@ export interface DirtyState {
 
 export interface Product {
   id: ProductId;
-  sku?: string;
   name: string;
   lowStockThreshold: number;
   note?: string;
@@ -233,6 +236,7 @@ export interface InventorySnapshot {
 
 export interface AppState {
   meta: SystemMeta;
+  settings: AppSettings;
   dirty: DirtyState;
   products: Product[];
   mappings: PlatformProductMapping[];
@@ -261,6 +265,7 @@ export interface AppState {
 - 第一列為欄位名稱
 - 日期欄位一律輸出 ISO 字串
 - ID 欄位一律保留（供重載一致性）
+- `meta.defaultLowStockThreshold` 保存新增商品的全域安全庫存預設值
 
 ### 匯入來源（訂單）
 

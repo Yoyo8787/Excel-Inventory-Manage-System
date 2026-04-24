@@ -3,10 +3,11 @@ import type { InboundRecord } from './inbound.model';
 import type { PlatformProductMapping } from './mapping.model';
 import type { Order } from './order.model';
 import type { Product } from './product.model';
-import type { DirtyState, SystemMeta } from './system.model';
+import type { AppSettings, DirtyState, SystemMeta } from './system.model';
 
 export interface AppState {
   meta: SystemMeta;
+  settings: AppSettings;
   dirty: DirtyState;
   products: Product[];
   mappings: PlatformProductMapping[];
@@ -20,6 +21,9 @@ export const createEmptyAppState = (datasetName = 'Untitled dataset'): AppState 
     datasetName,
     loadedAt: null,
     lastSavedAt: null,
+  },
+  settings: {
+    defaultLowStockThreshold: 20,
   },
   dirty: {
     isDirty: false,

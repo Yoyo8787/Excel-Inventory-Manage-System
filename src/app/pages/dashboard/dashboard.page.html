@@ -4,7 +4,9 @@
     <div class="masthead-left">
       <div>
         <span class="eyebrow">Control Panel — Daily Brief</span>
-        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">控制面板</h2>
+        <h2 class="display-title" style="font-size: 26px; margin: 4px 0 0; font-weight: 600">
+          控制面板
+        </h2>
       </div>
     </div>
     <div class="masthead-right">
@@ -13,37 +15,85 @@
   </div>
 
   <!-- Stat Cards -->
-  <div class="grid-4 gap-6" style="margin-top:22px;">
+  <div class="grid-4 gap-6" style="margin-top: 22px">
     @for (s of stats(); track s.label) {
       <div class="file-card stat-card">
-        <div class="cls-stripe" style="height:3px;">
-          <span [class]="s.tone === 'red'   ? 'red'   : 'ink'"></span>
+        <div class="cls-stripe" style="height: 3px">
+          <span [class]="s.tone === 'red' ? 'red' : 'ink'"></span>
           <span [class]="s.tone === 'ochre' ? 'ochre' : 'ink'"></span>
           <span [class]="s.tone === 'green' ? 'green' : 'ink'"></span>
-          <span [class]="s.tone === 'blue'  ? 'blue'  : 'ink'"></span>
+          <span [class]="s.tone === 'blue' ? 'blue' : 'ink'"></span>
         </div>
-        <div style="padding:16px 18px;">
+        <div style="padding: 16px 18px">
           <div class="eyebrow">{{ s.label }}</div>
-          <div class="display-title" style="font-size:34px; line-height:1.1; margin-top:6px;">
+          <div class="display-title" style="font-size: 34px; line-height: 1.1; margin-top: 6px">
             {{ s.valueStr }}
           </div>
-          <div style="margin-top:14px;">
-            <div class="mono" style="font-size:11px; color:var(--ink-muted);">{{ s.sub }}</div>
+          <div style="margin-top: 14px">
+            <div class="mono" style="font-size: 11px; color: var(--ink-muted)">{{ s.sub }}</div>
           </div>
         </div>
       </div>
     }
   </div>
 
+  <!-- Low Stock Products Alert (only when there is data) -->
+  @if (lowStockProducts().length > 0) {
+    <div class="file-card" style="margin-top: 24px; border-top: 3px double var(--danger)">
+      <div
+        class="file-card-head"
+        style="background: linear-gradient(180deg, rgba(224, 161, 84, 0.07), var(--surface))"
+      >
+        <div>
+          <div class="eyebrow" style="color: var(--danger)">ALERT · 庫存警示</div>
+          <div class="file-card-title" style="font-size: 20px">
+            低庫存品項
+            <span class="mono" style="font-size: 13px; color: var(--danger); margin-left: 8px">
+              {{ lowStockProducts().length }} items
+            </span>
+          </div>
+        </div>
+        <button class="btn btn-sm btn-primary" (click)="goto.emit('products')">
+          <span class="mat-icon sm">link</span>前往查看
+        </button>
+      </div>
+      <div class="file-card-body" style="padding: 0">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th class="row-num">列</th>
+              <th>商品名稱</th>
+              <th style="width: 120px">目前庫存</th>
+              <th style="width: 120px">安全庫存量</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (p of lowStockProducts(); track p.id; let i = $index) {
+              <tr>
+                <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
+                <td>{{ p.name }}</td>
+                <td class="num">{{ p.stockQty }}</td>
+                <td class="num">{{ p.lowStockThreshold }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+
   <!-- Unmatched Products Alert (only when there is data) -->
   @if (unmatchedProducts().length > 0) {
-    <div class="file-card" style="margin-top:24px; border-top:3px double var(--danger);">
-      <div class="file-card-head" style="background:linear-gradient(180deg,rgba(184,80,80,0.07),var(--surface));">
+    <div class="file-card" style="margin-top: 24px; border-top: 3px double var(--danger)">
+      <div
+        class="file-card-head"
+        style="background: linear-gradient(180deg, rgba(184, 80, 80, 0.07), var(--surface))"
+      >
         <div>
-          <div class="eyebrow" style="color:var(--danger);">ALERT · 配對警示</div>
-          <div class="file-card-title" style="font-size:20px;">
+          <div class="eyebrow" style="color: var(--danger)">ALERT · 配對警示</div>
+          <div class="file-card-title" style="font-size: 20px">
             未配對品項
-            <span class="mono" style="font-size:13px; color:var(--danger); margin-left:8px;">
+            <span class="mono" style="font-size: 13px; color: var(--danger); margin-left: 8px">
               {{ unmatchedProducts().length }} items
             </span>
           </div>
@@ -52,22 +102,24 @@
           <span class="mat-icon sm">link</span>前往配對
         </button>
       </div>
-      <div class="file-card-body" style="padding:0;">
+      <div class="file-card-body" style="padding: 0">
         <table class="ledger-table">
           <thead>
             <tr>
               <th class="row-num">列</th>
-              <th style="width:100px;">平台</th>
+              <th style="width: 100px">平台</th>
               <th>平台商品名稱</th>
-              <th style="width:150px;">訂單編號</th>
-              <th class="num" style="width:70px;">數量</th>
+              <th style="width: 150px">訂單編號</th>
+              <th class="num" style="width: 70px">數量</th>
             </tr>
           </thead>
           <tbody>
             @for (u of unmatchedProducts(); track u.orderLineId; let i = $index) {
               <tr>
-                <td class="row-num">{{ (i+1).toString().padStart(3,'0') }}</td>
-                <td><span class="tag">{{ u.platform }}</span></td>
+                <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
+                <td>
+                  <span class="tag">{{ u.platform }}</span>
+                </td>
                 <td>{{ u.platformProductName }}</td>
                 <td class="mono">{{ u.orderNo }}</td>
                 <td class="num">{{ u.quantity }}</td>
@@ -80,13 +132,13 @@
   }
 
   <!-- Recent Orders -->
-  <div class="file-card" style="margin-top:24px;">
+  <div class="file-card" style="margin-top: 24px">
     <div class="file-card-head">
       <div>
         <div class="eyebrow">LOG · 最近匯入</div>
         <div class="file-card-title">訂單紀錄</div>
       </div>
-      <div style="display:flex; gap:8px; align-items:center;">
+      <div style="display: flex; gap: 8px; align-items: center">
         <span class="tag">最近 8 筆</span>
         <button class="btn btn-sm" (click)="goto.emit('orders')">
           <span class="mat-icon sm">open_in_new</span>查看全部
@@ -95,40 +147,56 @@
     </div>
 
     @if (recentOrders().length === 0) {
-      <div class="file-card-body" style="text-align:center; padding:48px 20px;">
-        <span class="mat-icon lg" style="color:var(--ink-faint); display:block; margin-bottom:12px;">inbox</span>
-        <div class="mono" style="letter-spacing:0.15em; color:var(--ink-faint);">— 尚無訂單資料 —</div>
-        <div class="margin-note" style="margin-top:8px;">請至「訂單上傳」匯入 Excel 檔案</div>
-        <button class="btn btn-primary btn-sm" style="margin-top:16px;" (click)="goto.emit('orders')">
+      <div class="file-card-body" style="text-align: center; padding: 48px 20px">
+        <span
+          class="mat-icon lg"
+          style="color: var(--ink-faint); display: block; margin-bottom: 12px"
+          >inbox</span
+        >
+        <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
+          — 尚無訂單資料 —
+        </div>
+        <div class="margin-note" style="margin-top: 8px">請至「訂單上傳」匯入 Excel 檔案</div>
+        <button
+          class="btn btn-primary btn-sm"
+          style="margin-top: 16px"
+          (click)="goto.emit('orders')"
+        >
           <span class="mat-icon sm">upload</span>前往匯入
         </button>
       </div>
     } @else {
-      <div class="file-card-body" style="padding-top:0;">
+      <div class="file-card-body" style="padding-top: 0">
         <table class="ledger-table">
           <thead>
             <tr>
               <th class="row-num">No.</th>
-              <th style="width:100px;">平台</th>
-              <th style="width:150px;">訂單編號</th>
-              <th style="width:100px;">訂單日期</th>
-              <th style="width:100px;">狀態</th>
-              <th class="num" style="width:120px;">金額</th>
-              <th style="width:150px;">匯入時間</th>
+              <th style="width: 100px">平台</th>
+              <th style="width: 150px">訂單編號</th>
+              <th style="width: 100px">訂單日期</th>
+              <th style="width: 100px">狀態</th>
+              <th class="num" style="width: 120px">金額</th>
+              <th style="width: 150px">匯入時間</th>
             </tr>
           </thead>
           <tbody>
             @for (o of recentOrders(); track o.id; let i = $index) {
               <tr>
-                <td class="row-num">{{ (i+1).toString().padStart(3,'0') }}</td>
-                <td><span class="tag">{{ o.platform }}</span></td>
-                <td class="mono">{{ o.orderNo }}</td>
-                <td class="mono" style="font-size:11.5px; color:var(--ink-muted);">{{ o.orderDate }}</td>
+                <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
                 <td>
-                  <span class="tag"
+                  <span class="tag">{{ o.platform }}</span>
+                </td>
+                <td class="mono">{{ o.orderNo }}</td>
+                <td class="mono" style="font-size: 11.5px; color: var(--ink-muted)">
+                  {{ o.orderDate }}
+                </td>
+                <td>
+                  <span
+                    class="tag"
                     [class.ochre]="o.status === '尚未出貨'"
                     [class.green]="o.status === '已出貨'"
-                    [class.red]="o.status === '已取消' || o.status === '已退貨'">
+                    [class.red]="o.status === '已取消' || o.status === '已退貨'"
+                  >
                     {{ o.status }}
                   </span>
                 </td>
@@ -136,10 +204,10 @@
                   @if (o.amountTotal != null) {
                     $ {{ o.amountTotal.toLocaleString() }}
                   } @else {
-                    <span style="color:var(--ink-faint);">—</span>
+                    <span style="color: var(--ink-faint)">—</span>
                   }
                 </td>
-                <td class="mono" style="font-size:11px; color:var(--ink-muted);">
+                <td class="mono" style="font-size: 11px; color: var(--ink-muted)">
                   {{ formatImportedAt(o.importedAt) }}
                 </td>
               </tr>
@@ -151,7 +219,7 @@
   </div>
 
   <!-- Summary Tiles -->
-  <div class="grid-3 gap-6" style="margin-top:24px;">
+  <div class="grid-3 gap-6" style="margin-top: 24px">
     <div class="file-card">
       <div class="file-card-head">
         <div>
@@ -170,8 +238,10 @@
         </div>
         <div class="summary-row">
           <span>未配對品項</span>
-          <span class="mono"
-            [style.color]="unmatchedProducts().length > 0 ? 'var(--danger)' : 'var(--ink)'">
+          <span
+            class="mono"
+            [style.color]="unmatchedProducts().length > 0 ? 'var(--danger)' : 'var(--ink)'"
+          >
             {{ unmatchedProducts().length }} 項
           </span>
         </div>
@@ -207,14 +277,18 @@
       <div class="file-card-body">
         <div class="summary-row">
           <span>尚未出貨</span>
-          <span class="mono"
-            [style.color]="orderStatusSummary().pending > 0 ? 'var(--warn)' : 'var(--ink)'">
+          <span
+            class="mono"
+            [style.color]="orderStatusSummary().pending > 0 ? 'var(--warn)' : 'var(--ink)'"
+          >
             {{ orderStatusSummary().pending }} 筆
           </span>
         </div>
         <div class="summary-row">
           <span>已出貨</span>
-          <span class="mono" style="color:var(--mint-600);">{{ orderStatusSummary().shipped }} 筆</span>
+          <span class="mono" style="color: var(--mint-600)"
+            >{{ orderStatusSummary().shipped }} 筆</span
+          >
         </div>
         <div class="summary-row">
           <span>其他狀態</span>

@@ -50,6 +50,7 @@ export class ExcelIoService {
     return {
       ...base,
       meta: this.#parseMeta(metaRows),
+      settings: this.#parseSettings(metaRows),
       products: this.#parseProducts(productRows),
       mappings: this.#parseMappings(mappingRows),
       orders: this.#parseOrders(orderRows, orderLineRows),
@@ -112,12 +113,12 @@ export class ExcelIoService {
         datasetName: state.meta.datasetName,
         loadedAt: state.meta.loadedAt ?? '',
         lastSavedAt: state.meta.lastSavedAt ?? '',
+        defaultLowStockThreshold: state.settings.defaultLowStockThreshold,
       },
     ];
 
     const productRows = state.products.map((product) => ({
       id: product.id,
-      sku: product.sku ?? '',
       name: product.name,
       lowStockThreshold: product.lowStockThreshold,
       note: product.note ?? '',
@@ -243,6 +244,21 @@ export class ExcelIoService {
     };
   }
 
+  #parseSettings(rows: SheetRow[]): AppState['settings'] {
+    const base = createEmptyAppState().settings;
+    const first = rows[0] ?? {};
+    const defaultLowStockThreshold = this.#toNumberOrDefault(
+      first['defaultLowStockThreshold'],
+      base.defaultLowStockThreshold,
+    );
+
+    return {
+      defaultLowStockThreshold: Number.isFinite(defaultLowStockThreshold)
+        ? Math.max(0, Math.floor(defaultLowStockThreshold))
+        : base.defaultLowStockThreshold,
+    };
+  }
+
   #parseProducts(rows: SheetRow[]): Product[] {
     const items: Product[] = [];
 
@@ -259,7 +275,6 @@ export class ExcelIoService {
 
       items.push({
         id,
-        sku: this.#toOptionalString(row['sku']),
         name,
         lowStockThreshold: this.#toNumberOrDefault(row['lowStockThreshold'], 0),
         note: this.#toOptionalString(row['note']),

@@ -19,6 +19,10 @@ export interface SystemMeta {
   lastSavedAt: string | null;
 }
 
+export interface AppSettings {
+  defaultLowStockThreshold: number;
+}
+
 export interface DirtyState {
   isDirty: boolean;
   reasons: string[];
