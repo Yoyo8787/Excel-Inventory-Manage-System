@@ -171,8 +171,8 @@
         <div class="summary-row">
           <span>未配對品項</span>
           <span class="mono"
-            [style.color]="state().unmatchedProducts.length > 0 ? 'var(--danger)' : 'var(--ink)'">
-            {{ state().unmatchedProducts.length }} 項
+            [style.color]="unmatchedProducts().length > 0 ? 'var(--danger)' : 'var(--ink)'">
+            {{ unmatchedProducts().length }} 項
           </span>
         </div>
       </div>

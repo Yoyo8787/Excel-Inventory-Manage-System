@@ -53,7 +53,6 @@ export class ManualOrderPage {
     const now = new Date().toISOString();
     this.#store.applyOrderImport({
       result: { importedCount: 1, duplicateCount: 0, errorCount: 0, errors: [] },
-      unmatchedProducts: [],
       orders: [{
         id: nanoid(12),
         platform: this.platform(),

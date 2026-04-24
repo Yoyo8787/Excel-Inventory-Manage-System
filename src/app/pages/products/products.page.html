@@ -25,7 +25,9 @@
             {{ filtered().length }} / {{ state().products.length }}
           </span>
         </div>
-        <button class="btn btn-sm"><span class="mat-icon sm">add</span>新增商品</button>
+        <button class="btn btn-sm btn-primary" (click)="openAddProduct()">
+          <span class="mat-icon sm">add</span>新增商品
+        </button>
       </div>
 
       @if (state().products.length === 0) {
@@ -43,27 +45,46 @@
               <th>品名</th>
               <th class="num" style="width:100px;">安全庫存量</th>
               <th class="num" style="width:70px;">配對數</th>
-              <th style="width:32px;"></th>
+              <th style="width:80px;"></th>
             </tr>
           </thead>
           <tbody>
             @for (p of filtered(); track p.id; let i = $index) {
               <tr
                 style="cursor:pointer;"
-                [style.background]="state().products.indexOf(p) === selectedIdx() ? 'var(--mint-50)' : ''"
-                (click)="selectProduct(state().products.indexOf(p))"
+                [style.background]="active()?.id === p.id ? 'var(--mint-50)' : (confirmDeleteProductId() === p.id ? 'var(--danger-soft)' : '')"
+                (click)="selectProduct(p)"
               >
                 <td class="row-num">{{ (i+1).toString().padStart(3,'0') }}</td>
                 <td class="mono">{{ p.sku ?? '—' }}</td>
                 <td style="font-weight:600;">{{ p.name }}</td>
                 <td class="num mono">{{ p.lowStockThreshold }}</td>
                 <td class="num">
-                  <span class="tag" style="font-size:10px;">
-                    {{ mappingCount(p.id) }}
-                  </span>
+                  <span class="tag" style="font-size:10px;">{{ mappingCount(p.id) }}</span>
                 </td>
                 <td>
-                  <span class="mat-icon sm" style="color:var(--ink-faint);">chevron_right</span>
+                  @if (confirmDeleteProductId() === p.id) {
+                    <div style="display:flex; gap:4px; align-items:center;" (click)="$event.stopPropagation()">
+                      <button
+                        class="btn btn-sm"
+                        style="background:var(--danger); color:#fff; border-color:var(--danger); padding:3px 8px; font-size:11px;"
+                        (click)="confirmDeleteProduct(p)"
+                      >確認</button>
+                      <button
+                        class="btn btn-sm"
+                        style="padding:3px 8px; font-size:11px;"
+                        (click)="cancelDeleteProduct()"
+                      >取消</button>
+                    </div>
+                  } @else {
+                    <button
+                      class="btn btn-ghost btn-icon"
+                      title="刪除商品"
+                      (click)="$event.stopPropagation(); requestDeleteProduct(p.id)"
+                    >
+                      <span class="mat-icon sm" style="color:var(--ink-faint);">delete_outline</span>
+                    </button>
+                  }
                 </td>
               </tr>
             }
@@ -83,10 +104,12 @@
 
       @if (!active()) {
         <div class="file-card-body" style="text-align:center; padding:40px 16px;">
+          <span class="mat-icon" style="color:var(--ink-faint); display:block; margin-bottom:8px; font-size:24px;">link_off</span>
           <div class="mono" style="color:var(--ink-faint); font-size:12px;">← 請先選擇左側商品</div>
         </div>
       } @else {
         <div class="file-card-body">
+          <!-- 選定商品資訊 -->
           <div style="padding:10px 14px; border:1px solid var(--hairline); background:var(--surface-2); border-radius:var(--r-sm);">
             <div class="eyebrow" style="margin-bottom:4px;">實際貨物 · MASTER</div>
             <div class="serif" style="font-size:16px; font-weight:700;">{{ active()!.name }}</div>
@@ -104,30 +127,47 @@
           </div>
 
           @if (activeMappings().length === 0) {
-            <div style="text-align:center; padding:20px 0;">
+            <div style="text-align:center; padding:16px 0;">
               <div class="mono" style="font-size:11px; color:var(--ink-faint);">尚無配對規則</div>
             </div>
           } @else {
             @for (m of activeMappings(); track m.id) {
               <div style="padding:10px 12px; border:1px dashed var(--hairline); margin-bottom:8px; border-radius:var(--r-sm); position:relative;">
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
                   <span class="tag blue dot">{{ m.platform }}</span>
+                  <button
+                    class="btn btn-ghost btn-icon"
+                    style="width:22px; height:22px; flex-shrink:0;"
+                    title="移除此配對"
+                    (click)="deleteMapping(m.id, m.platformProductName)"
+                  >
+                    <span class="mat-icon sm" style="font-size:13px;">close</span>
+                  </button>
                 </div>
-                <div style="font-size:13px; line-height:1.4;">{{ m.platformProductName }}</div>
-                <button class="btn btn-sm btn-ghost btn-icon" style="position:absolute; top:8px; right:8px;">
-                  <span class="mat-icon sm">close</span>
-                </button>
+                <div style="font-size:13px; font-weight:600; line-height:1.4; margin-bottom:6px;">{{ m.platformProductName }}</div>
+                <!-- 對應的貨物 items -->
+                @for (item of m.items; track item.productId) {
+                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--ink-muted); padding:2px 0; border-top:1px solid var(--hairline);">
+                    <span>{{ getProduct(item.productId)?.name ?? '（已刪除商品）' }}</span>
+                    <span class="mono tag" style="font-size:10px;">× {{ item.quantity }}</span>
+                  </div>
+                }
               </div>
             }
           }
 
-          <button class="btn btn-ghost" style="width:100%; justify-content:center; margin-top:8px; border-style:dashed;">
+          <button
+            class="btn btn-ghost"
+            style="width:100%; justify-content:center; margin-top:8px; border-style:dashed;"
+            (click)="openMappingDialog()"
+          >
             <span class="mat-icon sm">add_link</span>新增平台配對
           </button>
 
           <div class="divider-ornament" style="margin:18px 0 10px;"><span>§</span></div>
           <div class="mono" style="font-size:11px; color:var(--ink-muted); line-height:1.7;">
             · 同一實際貨物可對應多個平台商品<br>
+            · 一個平台商品可消耗多種實際貨物<br>
             · 匯入訂單時系統自動依此表扣庫<br>
             · 若無配對則需手動指派
           </div>
@@ -135,4 +175,59 @@
       }
     </div>
   </div>
+
+  <!-- 待配對清單 -->
+  @if (unmatchedByPlatform().length > 0) {
+    <div class="file-card" style="margin-top:20px;">
+      <div class="file-card-head">
+        <div>
+          <div class="eyebrow">UNMATCHED · 待配對平台商品</div>
+          <div class="file-card-title">
+            尚未配對清單
+            <span class="tag ochre dot" style="margin-left:8px; font-size:10px;">
+              {{ unmatchedCount() }} 筆
+            </span>
+          </div>
+        </div>
+        <div class="mono" style="font-size:11px; color:var(--ink-muted);">點選「設定配對」建立對應關係</div>
+      </div>
+      <div class="file-card-body" style="padding:0;">
+        @for (group of unmatchedByPlatform(); track group.platform) {
+          <div style="border-bottom:1px solid var(--hairline);">
+            <div style="padding:8px 20px; background:var(--surface-2); border-bottom:1px solid var(--hairline);">
+              <span class="tag blue dot" style="font-size:11px;">{{ group.platform }}</span>
+            </div>
+            <table class="ledger-table" style="margin:0;">
+              <thead>
+                <tr>
+                  <th>平台商品名稱</th>
+                  <th class="num" style="width:80px;">出現次數</th>
+                  <th style="width:110px;"></th>
+                </tr>
+              </thead>
+              <tbody>
+                @for (u of group.items; track u.platformProductName) {
+                  <tr>
+                    <td style="font-weight:500;">{{ u.platformProductName }}</td>
+                    <td class="num mono">
+                      {{ countUnmatched(group.platform, u.platformProductName) }}
+                    </td>
+                    <td>
+                      <button
+                        class="btn btn-sm"
+                        style="font-size:11px;"
+                        (click)="openMappingDialog({ platform: group.platform, platformProductName: u.platformProductName })"
+                      >
+                        <span class="mat-icon sm" style="font-size:12px;">link</span>設定配對
+                      </button>
+                    </td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+        }
+      </div>
+    </div>
+  }
 </div>

@@ -19,6 +19,7 @@ export class DashboardPage {
     const todayOrders = s.orders.filter(o => o.orderDate === this.today);
     const todayRevenue = todayOrders.reduce((sum, o) => sum + (o.amountTotal ?? 0), 0);
     const pendingOrders = s.orders.filter(o => o.status === '尚未出貨');
+    const unmatchedCount = this.#store.unmatchedCount();
 
     return [
       {
@@ -30,8 +31,8 @@ export class DashboardPage {
       {
         label: '待出貨',
         valueStr: pendingOrders.length.toLocaleString(),
-        sub: s.unmatchedProducts.length > 0
-          ? `${s.unmatchedProducts.length} 項未配對`
+        sub: unmatchedCount > 0
+          ? `${unmatchedCount} 項未配對`
           : '所有訂單已配對',
         tone: 'ochre',
       },
@@ -56,7 +57,7 @@ export class DashboardPage {
       .slice(0, 8)
   );
 
-  readonly unmatchedProducts = computed(() => this.state().unmatchedProducts);
+  readonly unmatchedProducts = this.#store.unmatchedProducts;
 
   readonly inboundTotalQty = computed(() =>
     this.state().inbounds.reduce((s, r) => s + r.quantity, 0)

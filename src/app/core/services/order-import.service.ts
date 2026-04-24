@@ -16,7 +16,6 @@ import {
   PlatformProductMapping,
   PlatformType,
   PlatFormTypes,
-  UnmatchedProduct,
 } from '../models';
 import {
   NormalizedOrderRowCandidate,
@@ -28,7 +27,6 @@ dayjs.extend(customParseFormat);
 
 export interface OrderImportOutput {
   orders: Order[];
-  unmatchedProducts: UnmatchedProduct[];
   result: ImportJobResult;
 }
 
@@ -165,7 +163,6 @@ export class OrderImportService {
     const existingOrderNos = new Set(currentState.orders.map((order) => order.orderNo));
 
     const orders: Order[] = [];
-    const unmatchedProducts: UnmatchedProduct[] = [];
     let duplicateCount = 0;
 
     for (const rows of groupedByOrder.values()) {
@@ -182,26 +179,10 @@ export class OrderImportService {
       const order = this.#buildOrder(rows, currentState.mappings);
       orders.push(order);
       existingOrderNos.add(orderNo);
-
-      for (const line of order.lines) {
-        if (line.isMatched) {
-          continue;
-        }
-
-        unmatchedProducts.push({
-          platform: order.platform,
-          platformProductName: line.platformProductName,
-          orderNo: order.orderNo,
-          orderLineId: line.lineId,
-          quantity: line.quantity,
-          detectedAt: order.importedAt,
-        });
-      }
     }
 
     return {
       orders,
-      unmatchedProducts,
       result: {
         importedCount: orders.length,
         duplicateCount,
@@ -684,7 +665,6 @@ export class OrderImportService {
   #emptyResult(errors: ImportErrorRow[]): OrderImportOutput {
     return {
       orders: [],
-      unmatchedProducts: [],
       result: {
         importedCount: 0,
         duplicateCount: 0,

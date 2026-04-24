@@ -6,7 +6,8 @@
       "Bash(python -c \"import gzip; data=gzip.open\\('webfetch-1776927084798-5mueok.bin'\\).read\\(\\); print\\(data[:8000].decode\\('utf-8', errors='replace'\\)\\)\")",
       "Bash(python -c ' *)",
       "Bash(npx ng *)",
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Bash(npx tsc *)"
     ]
   }
 }
