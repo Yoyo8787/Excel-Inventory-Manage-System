@@ -11,7 +11,6 @@ import {
   ImportJobResult,
   MappingItem,
   Order,
-  OrderBusinessStatus,
   OrderLine,
   PlatformProductMapping,
   PlatformType,
@@ -160,25 +159,30 @@ export class OrderImportService {
     duplicatePolicy: DuplicateOrderPolicy,
   ): OrderImportOutput {
     const groupedByOrder = this.#groupRowsByOrderNo(validRows);
-    const existingOrderNos = new Set(currentState.orders.map((order) => order.orderNo));
+    const existingOrderKeys = new Set(
+      currentState.orders.map((order) => this.#orderKey(order.platform, order.orderNo)),
+    );
 
     const orders: Order[] = [];
     let duplicateCount = 0;
 
     for (const rows of groupedByOrder.values()) {
       const orderNo = rows[0]?.orderNo;
-      if (!orderNo) {
+      const platform = rows[0]?.platform;
+      if (!orderNo || !platform) {
         continue;
       }
 
-      if (duplicatePolicy === 'skip' && existingOrderNos.has(orderNo)) {
+      const orderKey = this.#orderKey(platform, orderNo);
+
+      if (duplicatePolicy === 'skip' && existingOrderKeys.has(orderKey)) {
         duplicateCount += 1;
         continue;
       }
 
       const order = this.#buildOrder(rows, currentState.mappings);
       orders.push(order);
-      existingOrderNos.add(orderNo);
+      existingOrderKeys.add(orderKey);
     }
 
     return {
@@ -215,8 +219,6 @@ export class OrderImportService {
       platform: first.platform,
       orderNo: first.orderNo,
       orderDate: first.orderDate,
-      statusRaw: first.statusRaw,
-      status: first.status,
       customerName: first.customerName,
       customerPhone: first.customerPhone,
       amountTotal: this.#resolveOrderAmount(first, rows),
@@ -281,22 +283,16 @@ export class OrderImportService {
 
     const rowDate = this.#parseDate(this.#pickValue(fieldLookup, this.#dateAliases(platform)));
 
-    const statusRaw = this.#toText(this.#pickValue(fieldLookup, this.#statusAliases(platform)));
-
-    const parsedQuantity = this.#parseNumber(this.#pickValue(fieldLookup, ['數量', 'quantity']));
-
     return {
       rowNumber,
       platform,
       orderNo: this.#pickValue(fieldLookup, ['訂單編號']),
       orderDate: rowDate ?? '',
-      statusRaw,
-      status: this.#normalizeBusinessStatus(statusRaw),
-      productName: this.#pickValue(fieldLookup, ['品名', '商品名稱']),
-      quantity: parsedQuantity,
-      amountTotal: this.#parseNumber(this.#pickValue(fieldLookup, ['金額', '總額', '總計'])),
-      unitPrice: this.#parseNumber(this.#pickValue(fieldLookup, ['商品售價', '單價'])),
-      subtotal: this.#parseNumber(this.#pickValue(fieldLookup, ['小計'])),
+      productName: this.#productName(platform, fieldLookup),
+      quantity: this.#pickValue(fieldLookup, ['數量', 'quantity']),
+      amountTotal: this.#pickValue(fieldLookup, ['金額', '總額', '總計']),
+      unitPrice: this.#pickValue(fieldLookup, ['商品售價', '單價']),
+      subtotal: this.#pickValue(fieldLookup, ['小計']),
       customerName: this.#pickValue(fieldLookup, this.#customerNameAliases(platform)),
       customerPhone: this.#pickValue(fieldLookup, this.#customerPhoneAliases(platform)),
       address: this.#buildAddress(platform, fieldLookup),
@@ -307,24 +303,23 @@ export class OrderImportService {
 
   #buildAddress(platform: PlatformType, fieldLookup: Map<string, unknown>): string | undefined {
     const directAliases =
-      platform === PlatFormTypes.A
-        ? ['地址']
-        : platform === PlatFormTypes.B
+      platform === PlatFormTypes.B
           ? ['收件地址寄海外請填寫英文']
           : ['收件地址', '地址'];
-    const direct = this.#toText(this.#pickValue(fieldLookup, directAliases));
-
-    if (direct.length > 0) {
-      return direct;
-    }
 
     if (platform === PlatFormTypes.A) {
       const city = this.#toText(this.#pickValue(fieldLookup, ['縣市']));
       const district = this.#toText(this.#pickValue(fieldLookup, ['鄉鎮市區']));
-      const address = this.#toText(this.#pickValue(fieldLookup, ['地址']));
+      const address = this.#toText(this.#pickValue(fieldLookup, ['地址', '收件地址']));
 
       const merged = [city, district, address].filter((value) => value.length > 0).join(' ');
       return merged.length > 0 ? merged : undefined;
+    }
+
+    const direct = this.#toText(this.#pickValue(fieldLookup, directAliases));
+
+    if (direct.length > 0) {
+      return direct;
     }
 
     if (platform === PlatFormTypes.B) {
@@ -488,19 +483,6 @@ export class OrderImportService {
     }
   }
 
-  #statusAliases(platform: PlatformType): string[] {
-    switch (platform) {
-      case PlatFormTypes.A:
-        return ['訂單狀態'];
-      case PlatFormTypes.B:
-        return ['狀態'];
-      case PlatFormTypes.C:
-        return ['訂單狀態', '出貨狀態'];
-      default:
-        return ['訂單狀態'];
-    }
-  }
-
   #customerNameAliases(platform: PlatformType): string[] {
     switch (platform) {
       case PlatFormTypes.A:
@@ -556,25 +538,6 @@ export class OrderImportService {
     return String(value).trim();
   }
 
-  #parseNumber(value: unknown): number | undefined {
-    if (value === null || value === undefined || value === '') {
-      return undefined;
-    }
-
-    if (typeof value === 'number') {
-      return Number.isFinite(value) ? value : undefined;
-    }
-
-    const normalized = String(value).trim().replaceAll(',', '');
-    if (normalized.length === 0) {
-      return undefined;
-    }
-
-    const parsed = Number(normalized);
-
-    return Number.isFinite(parsed) ? parsed : undefined;
-  }
-
   #parseDate(value: unknown): string | null {
     if (value === null || value === undefined || value === '') {
       return null;
@@ -616,50 +579,19 @@ export class OrderImportService {
     return fallback.isValid() ? fallback.toISOString() : null;
   }
 
-  #normalizeBusinessStatus(rawStatus: string): OrderBusinessStatus {
-    const normalized = rawStatus.trim().toLowerCase();
+  #productName(platform: PlatformType, fieldLookup: Map<string, unknown>): unknown {
+    const baseName = this.#toText(this.#pickValue(fieldLookup, ['品名', '商品名稱']));
 
-    if (normalized.includes('換貨保留') || normalized.includes('exchange_reserved')) {
-      return 'exchange_reserved';
+    if (platform !== PlatFormTypes.C) {
+      return baseName;
     }
 
-    if (
-      normalized.includes('取消') ||
-      normalized.includes('cancelled') ||
-      normalized.includes('canceled') ||
-      normalized.includes('作廢')
-    ) {
-      return 'cancelled';
-    }
+    const variant = this.#toText(this.#pickValue(fieldLookup, ['商品款式']));
+    return [baseName, variant].filter((value) => value.length > 0).join(' / ');
+  }
 
-    if (
-      normalized.includes('退貨') ||
-      normalized.includes('returned') ||
-      normalized.includes('refund')
-    ) {
-      return 'returned';
-    }
-
-    if (
-      normalized.includes('重寄') ||
-      normalized.includes('補寄') ||
-      normalized.includes('resend')
-    ) {
-      return 'resend';
-    }
-
-    if (
-      normalized.includes('出貨') ||
-      normalized.includes('已寄') ||
-      normalized.includes('配送') ||
-      normalized.includes('shipped') ||
-      normalized.includes('delivered') ||
-      normalized.includes('完成')
-    ) {
-      return 'shipped';
-    }
-
-    return 'normal';
+  #orderKey(platform: PlatformType, orderNo: string): string {
+    return `${platform}::${orderNo}`;
   }
 
   #emptyResult(errors: ImportErrorRow[]): OrderImportOutput {

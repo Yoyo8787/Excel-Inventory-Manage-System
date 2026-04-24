@@ -26,5 +26,6 @@ export class Toolbar {
 
   onSave(): void {
     this.excelIOService.downloadSystemWorkbook(this.state());
+    this.storeService.markSaved();
   }
 }

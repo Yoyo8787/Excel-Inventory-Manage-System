@@ -4,6 +4,7 @@ import { Dropzone } from '../../components/dropzone/dropzone';
 import { OrderTable } from '../../components/order-table/order-table';
 
 import { PlatformType, PlatFormTypes } from '../../core/models';
+import type { Order } from '../../core/models';
 import { OrderImportService } from '../../core/services/order-import.service';
 import { StoreService } from '../../core/services/store.service';
 import { LayoutService } from '../../core/services';
@@ -32,7 +33,6 @@ export class OrdersPage {
     };
   });
 
-  readonly platformMap: Record<string, string> = { A: '好蒔光', B: '仙姑', C: '綠崎' };
   readonly platformEntries = [
     { key: PlatFormTypes.A, label: '好蒔光' },
     { key: PlatFormTypes.B, label: '仙姑' },
@@ -66,5 +66,10 @@ export class OrdersPage {
     } finally {
       this.busy.set(false);
     }
+  }
+
+  deleteOrder(order: Order): void {
+    this.#storeService.deleteOrder(order.id);
+    this.#layoutService.showMessage(`已刪除訂單：${order.orderNo}`);
   }
 }

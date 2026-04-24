@@ -20,14 +20,10 @@
       </div>
       <div class="file-card-body">
         <div class="grid-2 gap-6">
-          <mat-form-field appearance="outline" style="width:100%;">
-            <mat-label>平台別</mat-label>
-            <mat-select [value]="platform()" (valueChange)="platform.set($event)">
-              @for (p of platforms; track p) {
-                <mat-option [value]="p">{{ p }}</mat-option>
-              }
-            </mat-select>
-          </mat-form-field>
+          <div class="summary-row" style="height:56px; align-items:center;">
+            <span>平台別</span>
+            <span class="tag">{{ '手動訂單' }}</span>
+          </div>
 
           <mat-form-field appearance="outline" style="width:100%;" class="mono">
             <mat-label>訂單編號</mat-label>
@@ -84,6 +80,7 @@
                 </td>
                 <td class="num">
                   <input class="inline-input mono" type="number" style="text-align:right;"
+                         min="1" step="1"
                          [value]="l.qty" (input)="updateLine(i,'qty',+$any($event.target).value||0)" />
                 </td>
                 <td class="num">

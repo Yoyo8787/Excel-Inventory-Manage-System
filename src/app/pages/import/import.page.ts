@@ -154,11 +154,11 @@ export class ImportPage {
 
   #toQuantity(value: string | number | null): number {
     const quantity = typeof value === 'number' ? value : Number(value);
-    return Number.isFinite(quantity) ? Math.max(0, quantity) : 0;
+    return Number.isFinite(quantity) ? Math.max(0, Math.floor(quantity)) : 0;
   }
 
   #positiveQty(value: number): number {
-    return Number.isFinite(value) && value > 0 ? value : 0;
+    return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
   }
 
   #isValidDate(value: string): boolean {

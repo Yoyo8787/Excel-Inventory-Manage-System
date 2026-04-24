@@ -88,7 +88,7 @@ export interface MappingDialogData {
                 </label>
                 <label class="field mono" style="width:90px; flex-shrink:0;">
                   <span class="label">數量 *</span>
-                  <input formControlName="quantity" type="number" min="1" placeholder="1">
+                  <input formControlName="quantity" type="number" min="1" step="1" placeholder="1">
                 </label>
                 @if (itemControls.length > 1) {
                   <button
@@ -141,7 +141,9 @@ export class MappingDialog {
   readonly #dialogRef = inject(MatDialogRef<MappingDialog>);
   readonly data: MappingDialogData = inject(MAT_DIALOG_DATA);
 
-  readonly platforms = Object.values(PlatFormTypes);
+  readonly platforms = Object.values(PlatFormTypes).filter(
+    (platform) => platform !== PlatFormTypes.Manual,
+  );
 
   readonly form = this.#fb.group({
     platform: [this.data.prefillPlatform ?? PlatFormTypes.A, Validators.required],
@@ -200,7 +202,7 @@ export class MappingDialog {
       platformProductName: v.platformProductName!,
       items: (v.items as { productId: string; quantity: number }[]).map(i => ({
         productId: i.productId,
-        quantity: +i.quantity,
+        quantity: Math.max(1, Math.floor(+i.quantity)),
       })),
       updatedAt: new Date().toISOString(),
     };

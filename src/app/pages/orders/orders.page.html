@@ -60,7 +60,6 @@
           <div class="eyebrow">STEP 02 · 結果</div>
           <div class="file-card-title">最新匯入效能報告</div>
         </div>
-        <span class="stamp green" style="font-size:11px;">已核章</span>
       </div>
       <div class="file-card-body">
         <div class="grid-3 gap-4">
@@ -71,7 +70,7 @@
             <div style="flex:1;">
               <div class="eyebrow">成功匯入訂單</div>
               <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--mint-600);">{{ importSummary().importedCount }}</div>
-              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">無資料衝突，已同步庫存</div>
+              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">已加入訂單列表</div>
             </div>
           </div>
           <div class="result-card">
@@ -81,7 +80,7 @@
             <div style="flex:1;">
               <div class="eyebrow">偵測到重複項</div>
               <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--warn);">{{ importSummary().duplicateCount }}</div>
-              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">已自動略過相同訂單編號</div>
+              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">已自動略過同平台相同訂單編號</div>
             </div>
           </div>
           <div class="result-card">
@@ -104,7 +103,6 @@
                 <th style="width:60px;">列</th>
                 <th style="width:140px;">欄位</th>
                 <th>原因</th>
-                <th style="width:80px; text-align:right;">處置</th>
               </tr>
             </thead>
             <tbody>
@@ -113,7 +111,6 @@
                   <td class="mono">{{ e.rowNumber.toString().padStart(3,'0') }}</td>
                   <td><span class="tag red">{{ e.field }}</span></td>
                   <td style="color:var(--ink-soft);">{{ e.reason }}</td>
-                  <td style="text-align:right;"><button class="btn btn-sm btn-ghost">修正</button></td>
                 </tr>
               }
             </tbody>
@@ -127,15 +124,13 @@
   <div class="file-card" style="margin-top:24px;">
     <div class="file-card-head">
       <div>
-        <div class="eyebrow">LEDGER · 本次已匯入</div>
+        <div class="eyebrow">LEDGER · 全部訂單</div>
         <div class="file-card-title">訂單列表</div>
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
         <span class="tag">{{ orders().length }} 筆</span>
-        <button class="btn btn-sm btn-ghost"><span class="mat-icon sm">filter_list</span>篩選</button>
-        <button class="btn btn-sm"><span class="mat-icon sm">download</span>匯出</button>
       </div>
     </div>
-    <order-table [orders]="orders()" />
+    <order-table [orders]="orders()" (deleteOrder)="deleteOrder($event)" />
   </div>
 </div>

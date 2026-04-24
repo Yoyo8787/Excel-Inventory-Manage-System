@@ -2,19 +2,13 @@ import { Injectable } from '@angular/core';
 import dayjs from 'dayjs';
 import { z } from 'zod';
 
-import {
-  ImportErrorRow,
-  OrderBusinessStatus,
-  PlatformType
-} from '../models';
+import { ImportErrorRow, PlatformType } from '../models';
 
 export interface NormalizedOrderRowCandidate {
   rowNumber: number;
   platform: PlatformType;
   orderNo: unknown;
   orderDate: unknown;
-  statusRaw: unknown;
-  status: unknown;
   productName: unknown;
   quantity: unknown;
   amountTotal?: unknown;
@@ -32,8 +26,6 @@ export interface ValidatedOrderRow {
   platform: PlatformType;
   orderNo: string;
   orderDate: string;
-  statusRaw: string;
-  status: OrderBusinessStatus;
   productName: string;
   quantity: number;
   amountTotal?: number;
@@ -46,15 +38,6 @@ export interface ValidatedOrderRow {
   raw: Record<string, unknown>;
 }
 
-const orderBusinessStatusSchema = z.enum([
-  'normal',
-  'shipped',
-  'cancelled',
-  'returned',
-  'resend',
-  'exchange_reserved'
-]);
-
 const normalizedOrderRowSchema = z.object({
   orderNo: z.string().trim().min(1, '訂單編號不可為空'),
   orderDate: z
@@ -62,8 +45,6 @@ const normalizedOrderRowSchema = z.object({
     .trim()
     .min(1, '日期不可為空')
     .refine((value) => dayjs(value).isValid(), '日期格式錯誤'),
-  statusRaw: z.string().trim().min(1, '訂單狀態不可為空'),
-  status: orderBusinessStatusSchema,
   productName: z.string().trim().min(1, '商品名稱不可為空'),
   quantity: z.number().int('數量必須為整數').positive('數量必須大於 0'),
   amountTotal: z.number().finite().optional(),
@@ -85,8 +66,6 @@ export class ValidationService {
     const parsed = normalizedOrderRowSchema.safeParse({
       orderNo: this.#toRequiredString(candidate.orderNo),
       orderDate: this.#toRequiredString(candidate.orderDate),
-      statusRaw: this.#toRequiredString(candidate.statusRaw),
-      status: candidate.status,
       productName: this.#toRequiredString(candidate.productName),
       quantity: this.#toNumber(candidate.quantity),
       amountTotal: this.#toOptionalNumber(candidate.amountTotal),
@@ -152,7 +131,7 @@ export class ValidationService {
 
     const parsed = this.#toNumber(value);
 
-    return Number.isFinite(parsed) ? parsed : undefined;
+    return parsed;
   }
 
   #toNumber(value: unknown): number {

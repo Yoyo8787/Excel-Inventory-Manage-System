@@ -4,12 +4,15 @@ import {
   AppState,
   InboundRecord,
   ImportJobResult,
+  InventorySnapshot,
+  MappingItem,
   MappingId,
   Order,
   PlatformProductMapping,
   Product,
   ProductId,
   UnmatchedProduct,
+  PlatFormTypes,
   createEmptyAppState,
 } from '../models';
 
@@ -32,14 +35,20 @@ export class StoreService {
 
   readonly unmatchedProducts = computed<UnmatchedProduct[]>(() => {
     const { orders, mappings } = this.#state();
-    const mappingSet = new Set(mappings.map((m) => `${m.platform}::${m.platformProductName}`));
     const seen = new Set<string>();
     const result: UnmatchedProduct[] = [];
 
     for (const order of orders) {
       for (const line of order.lines) {
         const key = `${order.platform}::${line.platformProductName}`;
-        if (!mappingSet.has(key) && !seen.has(key)) {
+        const mappedItems = this.#resolveMappedItems(
+          order,
+          line.platformProductName,
+          line.mappedItems,
+          mappings,
+        );
+
+        if (mappedItems.length === 0 && !seen.has(key)) {
           seen.add(key);
           result.push({
             platform: order.platform,
@@ -58,23 +67,55 @@ export class StoreService {
 
   readonly unmatchedCount = computed(() => this.unmatchedProducts().length);
 
-  readonly lowStockProducts = computed(() => {
-    const { products, inbounds } = this.#state();
+  readonly inventorySnapshots = computed<InventorySnapshot[]>(() => {
+    const { products, inbounds, orders, mappings } = this.#state();
     const inboundMap = new Map<ProductId, number>();
+    const deductedMap = new Map<ProductId, number>();
 
     for (const record of inbounds) {
       const current = inboundMap.get(record.productId) ?? 0;
       inboundMap.set(record.productId, current + record.quantity);
     }
 
+    for (const order of orders) {
+      for (const line of order.lines) {
+        const mappedItems = this.#resolveMappedItems(
+          order,
+          line.platformProductName,
+          line.mappedItems,
+          mappings,
+        );
+
+        for (const item of mappedItems) {
+          const current = deductedMap.get(item.productId) ?? 0;
+          deductedMap.set(item.productId, current + line.quantity * item.quantity);
+        }
+      }
+    }
+
     return products
       .map((p) => ({
-        ...p,
-        stockQty: inboundMap.get(p.id) ?? 0,
+        productId: p.id,
+        productName: p.name,
+        inboundTotal: inboundMap.get(p.id) ?? 0,
+        deductedTotal: deductedMap.get(p.id) ?? 0,
+        restockedTotal: 0,
+        onHand: (inboundMap.get(p.id) ?? 0) - (deductedMap.get(p.id) ?? 0),
+        isLowStock:
+          (inboundMap.get(p.id) ?? 0) - (deductedMap.get(p.id) ?? 0) <= p.lowStockThreshold,
       }))
-      .filter((p) => {
-        return p.stockQty <= p.lowStockThreshold;
-      });
+      .sort((a, b) => a.productName.localeCompare(b.productName, 'zh-Hant'));
+  });
+
+  readonly lowStockProducts = computed(() => {
+    const productMap = new Map(this.#state().products.map((p) => [p.id, p]));
+
+    return this.inventorySnapshots()
+      .filter((snapshot) => snapshot.isLowStock)
+      .map((snapshot) => ({
+        ...productMap.get(snapshot.productId)!,
+        stockQty: snapshot.onHand,
+      }));
   });
 
   get snapshot(): AppState {
@@ -230,6 +271,17 @@ export class StoreService {
     }));
   }
 
+  deleteOrder(orderId: string): void {
+    this.#state.update((s) => ({
+      ...s,
+      orders: s.orders.filter((order) => order.id !== orderId),
+      dirty: {
+        isDirty: true,
+        reasons: this.#appendDirtyReason(s.dirty.reasons, 'order_delete'),
+      },
+    }));
+  }
+
   applyOrderImport(payload: OrderImportApplyPayload): void {
     this.#state.update((current) => {
       const loadedAt = current.meta.loadedAt ?? new Date().toISOString();
@@ -277,5 +329,25 @@ export class StoreService {
     }
 
     return [...reasons, reason];
+  }
+
+  #resolveMappedItems(
+    order: Order,
+    platformProductName: string,
+    storedItems: MappingItem[],
+    mappings: PlatformProductMapping[],
+  ): MappingItem[] {
+    if (order.platform === PlatFormTypes.Manual) {
+      return storedItems.map((item) => ({ ...item }));
+    }
+
+    const normalizedName = platformProductName.trim().toLowerCase();
+    const mapping = mappings.find(
+      (item) =>
+        item.platform === order.platform &&
+        item.platformProductName.trim().toLowerCase() === normalizedName,
+    );
+
+    return mapping?.items.map((item) => ({ ...item })) ?? [];
   }
 }

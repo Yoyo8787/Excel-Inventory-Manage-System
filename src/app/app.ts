@@ -1,4 +1,4 @@
-import { Component, effect, inject } from '@angular/core';
+import { Component, HostListener, effect, inject } from '@angular/core';
 import { MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 
 import { StoreService } from './core/services/store.service';
@@ -44,6 +44,19 @@ export class App {
 
   gotoPage(p: string): void {
     this.#layoutService.setPage(p);
+  }
+
+  @HostListener('window:beforeunload', ['$event'])
+  handleBeforeUnload(event: BeforeUnloadEvent): void {
+    if (!this.state().dirty.isDirty) {
+      return;
+    }
+
+    if (window.confirm('有未儲存的變更，確定要離開嗎？')) {
+      return;
+    }
+    event.preventDefault();
+    event.returnValue = '';
   }
 
   constructor() {

@@ -8,7 +8,6 @@ import {
   ImportErrorRow,
   MappingItem,
   Order,
-  OrderBusinessStatus,
   OrderLine,
   PlatformProductMapping,
   PlatformType,
@@ -133,8 +132,6 @@ export class ExcelIoService {
       platform: order.platform,
       orderNo: order.orderNo,
       orderDate: order.orderDate,
-      statusRaw: order.statusRaw,
-      status: order.status,
       customerName: order.customerName ?? '',
       customerPhone: order.customerPhone ?? '',
       amountTotal: order.amountTotal ?? '',
@@ -323,13 +320,9 @@ export class ExcelIoService {
 
   #parseMappingItem(row: SheetRow): MappingItem[] {
     const productId = this.#toOptionalString(row['productId']);
-    const quantity = this.#toOptionalNumber(row['quantity']);
+    const quantity = this.#toPositiveInteger(row['quantity']);
 
     if (!productId || quantity === null) {
-      return [];
-    }
-
-    if (!Number.isInteger(quantity) || quantity <= 0) {
       return [];
     }
 
@@ -363,11 +356,9 @@ export class ExcelIoService {
       const platform = this.#toPlatform(row['platform']);
       const orderNo = this.#toOptionalString(row['orderNo']);
       const orderDate = this.#toIsoOrNull(row['orderDate']);
-      const statusRaw = this.#toOptionalString(row['statusRaw']);
-      const status = this.#toOrderStatus(row['status']);
       const importedAt = this.#toIsoOrNull(row['importedAt']);
 
-      if (!id || !platform || !orderNo || !orderDate || !statusRaw || !status || !importedAt) {
+      if (!id || !platform || !orderNo || !orderDate || !importedAt) {
         continue;
       }
 
@@ -376,8 +367,6 @@ export class ExcelIoService {
         platform,
         orderNo,
         orderDate,
-        statusRaw,
-        status,
         customerName: this.#toOptionalString(row['customerName']),
         customerPhone: this.#toOptionalString(row['customerPhone']),
         amountTotal: this.#toOptionalNumber(row['amountTotal']) ?? undefined,
@@ -410,9 +399,9 @@ export class ExcelIoService {
   #parseOrderLine(row: SheetRow): OrderLine | null {
     const lineId = this.#toOptionalString(row['lineId']);
     const platformProductName = this.#toOptionalString(row['platformProductName']);
-    const quantity = this.#toOptionalNumber(row['quantity']);
+    const quantity = this.#toPositiveInteger(row['quantity']);
 
-    if (!lineId || !platformProductName || quantity === null || quantity <= 0) {
+    if (!lineId || !platformProductName || quantity === null) {
       return null;
     }
 
@@ -448,9 +437,9 @@ export class ExcelIoService {
 
           const objectItem = item as Record<string, unknown>;
           const productId = this.#toOptionalString(objectItem['productId']);
-          const quantity = this.#toOptionalNumber(objectItem['quantity']);
+          const quantity = this.#toPositiveInteger(objectItem['quantity']);
 
-          if (!productId || quantity === null || quantity <= 0) {
+          if (!productId || quantity === null) {
             return null;
           }
 
@@ -471,7 +460,7 @@ export class ExcelIoService {
     for (const row of rows) {
       const id = this.#toOptionalString(row['id']);
       const productId = this.#toOptionalString(row['productId']);
-      const quantity = this.#toOptionalNumber(row['quantity']);
+      const quantity = this.#toPositiveInteger(row['quantity']);
       const inboundDate = this.#toIsoOrNull(row['inboundDate']);
 
       if (!id || !productId || quantity === null || !inboundDate) {
@@ -518,6 +507,17 @@ export class ExcelIoService {
     return Number.isFinite(parsed) ? parsed : null;
   }
 
+  #toPositiveInteger(value: unknown): number | null {
+    const parsed = this.#toOptionalNumber(value);
+
+    if (parsed === null || parsed <= 0) {
+      return null;
+    }
+
+    const quantity = Math.floor(parsed);
+    return quantity > 0 ? quantity : null;
+  }
+
   #toIsoOrNull(value: unknown): string | null {
     if (value === null || value === undefined || value === '') {
       return null;
@@ -540,27 +540,16 @@ export class ExcelIoService {
   #toPlatform(value: unknown): PlatformType | null {
     const raw = this.#toOptionalString(value)?.toUpperCase();
 
-    if (raw === PlatFormTypes.A || raw === PlatFormTypes.B || raw === PlatFormTypes.C) {
+    if (
+      raw === PlatFormTypes.A ||
+      raw === PlatFormTypes.B ||
+      raw === PlatFormTypes.C ||
+      raw === PlatFormTypes.Manual
+    ) {
       return raw;
     }
 
     return null;
-  }
-
-  #toOrderStatus(value: unknown): OrderBusinessStatus | null {
-    const raw = this.#toOptionalString(value);
-
-    switch (raw) {
-      case 'normal':
-      case 'shipped':
-      case 'cancelled':
-      case 'returned':
-      case 'resend':
-      case 'exchange_reserved':
-        return raw;
-      default:
-        return null;
-    }
   }
 
   #toBoolean(value: unknown): boolean {

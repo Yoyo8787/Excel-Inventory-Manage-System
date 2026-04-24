@@ -13,10 +13,11 @@
         <th style="width:160px;">匯入時間</th>
         <th>商品</th>
         <th class="num" style="width:110px;">總金額</th>
+        <th style="width:88px;"></th>
       </tr>
     </thead>
     <tbody>
-      @for (order of orders(); track order.orderNo; let i = $index) {
+      @for (order of orders(); track order.id; let i = $index) {
         <tr>
           <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
           <td><span class="tag">{{ order.platform }}</span></td>
@@ -35,6 +36,30 @@
             }
           </td>
           <td class="num mono">$ {{ order.amountTotal | number }}</td>
+          <td>
+            @if (confirmDeleteOrderId() === order.id) {
+              <div style="display:flex; gap:4px; align-items:center; justify-content:flex-end;">
+                <button
+                  class="btn btn-sm"
+                  style="background:var(--danger); color:#fff; border-color:var(--danger); padding:3px 8px; font-size:11px;"
+                  (click)="confirmDelete(order)"
+                >確認</button>
+                <button
+                  class="btn btn-sm"
+                  style="padding:3px 8px; font-size:11px;"
+                  (click)="cancelDelete()"
+                >取消</button>
+              </div>
+            } @else {
+              <button
+                class="btn btn-ghost btn-icon"
+                title="刪除訂單"
+                (click)="requestDelete(order)"
+              >
+                <span class="mat-icon sm" style="color:var(--ink-faint);">delete_outline</span>
+              </button>
+            }
+          </td>
         </tr>
       }
     </tbody>
