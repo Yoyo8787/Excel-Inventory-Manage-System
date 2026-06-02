@@ -37,10 +37,7 @@
 
   @if (lowStockProducts().length > 0) {
     <div class="file-card" style="margin-top: 24px; border-top: 3px double var(--danger)">
-      <div
-        class="file-card-head"
-        style="background: linear-gradient(180deg, rgba(224, 161, 84, 0.07), var(--surface))"
-      >
+      <div class="file-card-head" style="background: linear-gradient(180deg, rgba(224, 161, 84, 0.07), var(--surface))">
         <div>
           <div class="eyebrow" style="color: var(--danger)">ALERT · 庫存警示</div>
           <div class="file-card-title" style="font-size: 20px">
@@ -60,17 +57,19 @@
             <tr>
               <th class="row-num">列</th>
               <th>商品名稱</th>
+              <th>商品款式</th>
               <th class="num" style="width: 120px">目前庫存</th>
               <th class="num" style="width: 120px">安全庫存量</th>
             </tr>
           </thead>
           <tbody>
-            @for (p of lowStockProducts(); track p.id; let i = $index) {
+            @for (p of lowStockProducts(); track p.key; let i = $index) {
               <tr>
                 <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-                <td>{{ p.name }}</td>
-                <td class="num">{{ p.stockQty }}</td>
-                <td class="num">{{ p.lowStockThreshold }}</td>
+                <td>{{ p.productName }}</td>
+                <td>{{ p.productStyle }}</td>
+                <td class="num">{{ p.onHand }}</td>
+                <td class="num">{{ state().settings.defaultLowStockThreshold }}</td>
               </tr>
             }
           </tbody>
@@ -79,18 +78,15 @@
     </div>
   }
 
-  @if (unmatchedProducts().length > 0) {
+  @if (unmatchedOutbounds().length > 0) {
     <div class="file-card" style="margin-top: 24px; border-top: 3px double var(--danger)">
-      <div
-        class="file-card-head"
-        style="background: linear-gradient(180deg, rgba(184, 80, 80, 0.07), var(--surface))"
-      >
+      <div class="file-card-head" style="background: linear-gradient(180deg, rgba(184, 80, 80, 0.07), var(--surface))">
         <div>
           <div class="eyebrow" style="color: var(--danger)">ALERT · 配對警示</div>
           <div class="file-card-title" style="font-size: 20px">
-            未配對品項
+            未配對出貨
             <span class="mono" style="font-size: 13px; color: var(--danger); margin-left: 8px">
-              {{ unmatchedProducts().length }} items
+              {{ unmatchedOutbounds().length }} rows
             </span>
           </div>
         </div>
@@ -103,19 +99,19 @@
           <thead>
             <tr>
               <th class="row-num">列</th>
-              <th style="width: 100px">平台</th>
-              <th>平台商品名稱</th>
-              <th style="width: 150px">訂單編號</th>
+              <th>商品名稱</th>
+              <th>商品款式</th>
+              <th>收件人</th>
               <th class="num" style="width: 70px">數量</th>
             </tr>
           </thead>
           <tbody>
-            @for (u of unmatchedProducts(); track u.orderLineId; let i = $index) {
+            @for (u of unmatchedOutbounds(); track u.outboundId; let i = $index) {
               <tr>
                 <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-                <td><span class="tag">{{ u.platform }}</span></td>
-                <td>{{ u.platformProductName }}</td>
-                <td class="mono">{{ u.orderNo }}</td>
+                <td>{{ u.productName }}</td>
+                <td>{{ u.productStyle || '空白' }}</td>
+                <td>{{ u.recipientName }}</td>
                 <td class="num">{{ u.quantity }}</td>
               </tr>
             }
@@ -129,7 +125,7 @@
     <div class="file-card-head">
       <div>
         <div class="eyebrow">LOG · 最近匯入</div>
-        <div class="file-card-title">訂單紀錄</div>
+        <div class="file-card-title">出貨紀錄</div>
       </div>
       <div style="display: flex; gap: 8px; align-items: center">
         <span class="tag">最近 8 筆</span>
@@ -139,22 +135,14 @@
       </div>
     </div>
 
-    @if (recentOrders().length === 0) {
+    @if (recentOutbounds().length === 0) {
       <div class="file-card-body" style="text-align: center; padding: 48px 20px">
-        <span
-          class="mat-icon lg"
-          style="color: var(--ink-faint); display: block; margin-bottom: 12px"
-          >inbox</span
-        >
+        <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px">inbox</span>
         <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
-          — 尚無訂單資料 —
+          — 尚無出貨資料 —
         </div>
-        <div class="margin-note" style="margin-top: 8px">請至「訂單上傳」匯入 Excel 檔案</div>
-        <button
-          class="btn btn-primary btn-sm"
-          style="margin-top: 16px"
-          (click)="goto.emit('orders')"
-        >
+        <div class="margin-note" style="margin-top: 8px">請至「出貨匯入」上傳 Excel 檔案</div>
+        <button class="btn btn-primary btn-sm" style="margin-top: 16px" (click)="goto.emit('orders')">
           <span class="mat-icon sm">upload</span>前往匯入
         </button>
       </div>
@@ -164,29 +152,21 @@
           <thead>
             <tr>
               <th class="row-num">No.</th>
-              <th style="width: 100px">平台</th>
-              <th style="width: 150px">訂單編號</th>
-              <th style="width: 100px">訂單日期</th>
-              <th class="num" style="width: 120px">金額</th>
+              <th>商品名稱</th>
+              <th>商品款式</th>
+              <th style="width: 120px">收件人</th>
+              <th class="num" style="width: 80px">數量</th>
               <th style="width: 150px">匯入時間</th>
             </tr>
           </thead>
           <tbody>
-            @for (o of recentOrders(); track o.id; let i = $index) {
+            @for (o of recentOutbounds(); track o.id; let i = $index) {
               <tr>
                 <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-                <td><span class="tag">{{ o.platform }}</span></td>
-                <td class="mono">{{ o.orderNo }}</td>
-                <td class="mono" style="font-size: 11.5px; color: var(--ink-muted)">
-                  {{ o.orderDate }}
-                </td>
-                <td class="num mono">
-                  @if (o.amountTotal != null) {
-                    $ {{ o.amountTotal.toLocaleString() }}
-                  } @else {
-                    <span style="color: var(--ink-faint)">—</span>
-                  }
-                </td>
+                <td>{{ o.productName }}</td>
+                <td>{{ o.productStyle || '空白' }}</td>
+                <td>{{ o.recipientName }}</td>
+                <td class="num mono">{{ o.quantity }}</td>
                 <td class="mono" style="font-size: 11px; color: var(--ink-muted)">
                   {{ formatImportedAt(o.importedAt) }}
                 </td>
@@ -202,26 +182,23 @@
     <div class="file-card">
       <div class="file-card-head">
         <div>
-          <div class="eyebrow">商品與配對</div>
+          <div class="eyebrow">庫存與配對</div>
           <div class="file-card-title">目前概況</div>
         </div>
       </div>
       <div class="file-card-body">
         <div class="summary-row">
-          <span>已建立商品</span>
-          <span class="mono">{{ state().products.length }} 項</span>
+          <span>庫存品項</span>
+          <span class="mono">{{ inventorySnapshots().length }} 項</span>
         </div>
         <div class="summary-row">
-          <span>平台配對規則</span>
+          <span>出貨配對規則</span>
           <span class="mono">{{ state().mappings.length }} 條</span>
         </div>
         <div class="summary-row">
-          <span>未配對品項</span>
-          <span
-            class="mono"
-            [style.color]="unmatchedProducts().length > 0 ? 'var(--danger)' : 'var(--ink)'"
-          >
-            {{ unmatchedProducts().length }} 項
+          <span>未配對出貨</span>
+          <span class="mono" [style.color]="unmatchedOutbounds().length > 0 ? 'var(--danger)' : 'var(--ink)'">
+            {{ unmatchedOutbounds().length }} 筆
           </span>
         </div>
       </div>
@@ -258,9 +235,7 @@
 
     @if (inventorySnapshots().length === 0) {
       <div class="file-card-body" style="text-align: center; padding: 48px 20px">
-        <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px"
-          >inventory_2</span
-        >
+        <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px">inventory_2</span>
         <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
           — 尚無商品資料 —
         </div>
@@ -270,23 +245,25 @@
         <thead>
           <tr>
             <th class="row-num">No.</th>
-            <th>商品</th>
+            <th>商品名稱</th>
+            <th>商品款式</th>
             <th class="num" style="width: 100px">進貨</th>
-            <th class="num" style="width: 100px">訂單扣除</th>
+            <th class="num" style="width: 100px">出貨扣除</th>
             <th class="num" style="width: 100px">目前庫存</th>
             <th class="num" style="width: 100px">安全庫存</th>
             <th style="width: 90px">低庫存</th>
           </tr>
         </thead>
         <tbody>
-          @for (item of inventorySnapshots(); track item.productId; let i = $index) {
+          @for (item of inventorySnapshots(); track item.key; let i = $index) {
             <tr>
               <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
               <td style="font-weight: 600">{{ item.productName }}</td>
+              <td>{{ item.productStyle }}</td>
               <td class="num mono">{{ item.inboundTotal.toLocaleString() }}</td>
               <td class="num mono">{{ item.deductedTotal.toLocaleString() }}</td>
               <td class="num mono">{{ item.onHand.toLocaleString() }}</td>
-              <td class="num mono">{{ lowStockThreshold(item.productId).toLocaleString() }}</td>
+              <td class="num mono">{{ state().settings.defaultLowStockThreshold.toLocaleString() }}</td>
               <td>
                 <span class="tag dot" [class.red]="item.isLowStock" [class.green]="!item.isLowStock">
                   {{ item.isLowStock ? '是' : '否' }}

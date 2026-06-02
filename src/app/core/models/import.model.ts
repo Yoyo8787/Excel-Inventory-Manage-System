@@ -1,17 +1,16 @@
-import type { PlatformType } from './system.model';
+export type ImportRecordType = 'inbound' | 'outbound';
 
 export interface ImportErrorRow {
   rowNumber: number;
-  platform: PlatformType;
-  orderNo?: string;
+  type: ImportRecordType;
   field: string;
   reason: string;
   raw: Record<string, unknown>;
 }
 
 export interface ImportJobResult {
+  type: ImportRecordType;
   importedCount: number;
-  duplicateCount: number;
   errorCount: number;
   errors: ImportErrorRow[];
 }

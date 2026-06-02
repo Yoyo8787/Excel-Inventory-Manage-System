@@ -1,4 +1,4 @@
-@if (!orders().length) {
+@if (!records().length) {
   <div style="padding:60px 20px; text-align:center;">
     <div class="mono" style="letter-spacing:0.2em; color:var(--ink-faint);">— 尚無匯入記錄 —</div>
     <div class="margin-note" style="margin-top:10px;">請先上傳檔案</div>
@@ -8,55 +8,52 @@
     <thead>
       <tr>
         <th class="row-num">No.</th>
-        <th style="width:90px;">平台</th>
-        <th style="width:150px;">訂單編號</th>
         <th style="width:160px;">匯入時間</th>
-        <th>商品</th>
-        <th class="num" style="width:110px;">總金額</th>
+        <th style="width:160px;">收件人</th>
+        <th>商品名稱</th>
+        <th>商品款式</th>
+        <th class="num" style="width:90px;">數量</th>
         <th style="width:88px;"></th>
       </tr>
     </thead>
     <tbody>
-      @for (order of orders(); track order.id; let i = $index) {
+      @for (record of records(); track record.id; let i = $index) {
         <tr>
           <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-          <td><span class="tag">{{ order.platform }}</span></td>
-          <td class="mono">{{ order.orderNo }}</td>
           <td class="mono" style="font-size:11.5px; color:var(--ink-muted);">
-            {{ order.importedAt | date:'yyyy-MM-dd HH:mm' }}
+            {{ record.importedAt | date:'yyyy-MM-dd HH:mm' }}
           </td>
+          <td style="font-weight:600;">{{ record.recipientName }}</td>
+          <td>{{ record.productName }}</td>
           <td>
-            @for (line of order.lines; track line.lineId) {
-              <div style="display:flex; justify-content:space-between; gap:12px; padding:2px 0;">
-                <span style="max-width:340px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                  {{ line.platformProductName }}
-                </span>
-                <span class="mono" style="color:var(--ink-muted);">{{ line.subtotal }}</span>
-              </div>
+            @if (record.productStyle) {
+              {{ record.productStyle }}
+            } @else {
+              <span style="color:var(--ink-faint);">（空白）</span>
             }
           </td>
-          <td class="num mono">$ {{ order.amountTotal | number }}</td>
+          <td class="num mono">{{ record.quantity }}</td>
           <td>
-            @if (confirmDeleteOrderId() === order.id) {
+            @if (confirmImportedAt() === record.importedAt) {
               <div style="display:flex; gap:4px; align-items:center; justify-content:flex-end;">
                 <button
                   class="btn btn-sm"
                   style="background:var(--danger); color:#fff; border-color:var(--danger); padding:3px 8px; font-size:11px;"
-                  (click)="confirmDelete(order)"
+                  (click)="confirmRemove(record.importedAt)"
                 >確認</button>
                 <button
                   class="btn btn-sm"
                   style="padding:3px 8px; font-size:11px;"
-                  (click)="cancelDelete()"
+                  (click)="cancelRemove()"
                 >取消</button>
               </div>
             } @else {
               <button
                 class="btn btn-ghost btn-icon"
-                title="刪除訂單"
-                (click)="requestDelete(order)"
+                title="撤回同批匯入"
+                (click)="requestRemove(record.importedAt)"
               >
-                <span class="mat-icon sm" style="color:var(--ink-faint);">delete_outline</span>
+                <span class="mat-icon sm" style="color:var(--ink-faint);">undo</span>
               </button>
             }
           </td>

@@ -1,28 +1,28 @@
 import { Component, input, output, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import { DatePipe } from '@angular/common';
 
-import { Order } from '../../core/models';
+import { OutboundRecord } from '../../core/models';
 
 @Component({
-  selector: 'order-table',
+  selector: 'outbound-table',
   templateUrl: 'order-table.html',
-  imports: [DatePipe, DecimalPipe],
+  imports: [DatePipe],
 })
-export class OrderTable {
-  readonly orders = input<Order[]>([]);
-  readonly deleteOrder = output<Order>();
-  readonly confirmDeleteOrderId = signal<string | null>(null);
+export class OutboundTable {
+  readonly records = input<OutboundRecord[]>([]);
+  readonly removeBatch = output<string>();
+  readonly confirmImportedAt = signal<string | null>(null);
 
-  requestDelete(order: Order): void {
-    this.confirmDeleteOrderId.set(order.id);
+  requestRemove(importedAt: string): void {
+    this.confirmImportedAt.set(importedAt);
   }
 
-  cancelDelete(): void {
-    this.confirmDeleteOrderId.set(null);
+  cancelRemove(): void {
+    this.confirmImportedAt.set(null);
   }
 
-  confirmDelete(order: Order): void {
-    this.confirmDeleteOrderId.set(null);
-    this.deleteOrder.emit(order);
+  confirmRemove(importedAt: string): void {
+    this.confirmImportedAt.set(null);
+    this.removeBatch.emit(importedAt);
   }
 }

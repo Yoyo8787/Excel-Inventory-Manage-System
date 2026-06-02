@@ -1,18 +1,16 @@
 import type { ImportJobResult } from './import.model';
 import type { InboundRecord } from './inbound.model';
-import type { PlatformProductMapping } from './mapping.model';
-import type { Order } from './order.model';
-import type { Product } from './product.model';
+import type { ProductAliasMapping } from './mapping.model';
+import type { OutboundRecord } from './order.model';
 import type { AppSettings, DirtyState, SystemMeta } from './system.model';
 
 export interface AppState {
   meta: SystemMeta;
   settings: AppSettings;
   dirty: DirtyState;
-  products: Product[];
-  mappings: PlatformProductMapping[];
-  orders: Order[];
+  mappings: ProductAliasMapping[];
   inbounds: InboundRecord[];
+  outbounds: OutboundRecord[];
   lastImportResult: ImportJobResult | null;
 }
 
@@ -29,9 +27,8 @@ export const createEmptyAppState = (datasetName = 'Untitled dataset'): AppState 
     isDirty: false,
     reasons: [],
   },
-  products: [],
   mappings: [],
-  orders: [],
   inbounds: [],
+  outbounds: [],
   lastImportResult: null,
 });

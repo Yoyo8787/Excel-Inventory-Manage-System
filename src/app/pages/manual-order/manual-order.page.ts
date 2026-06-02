@@ -1,20 +1,23 @@
-import { Component, inject, signal, computed } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { nanoid } from 'nanoid';
 
-import { StoreService } from '../../core/services/store.service';
-import { LayoutService } from '../../core/services/layout.service';
-import { PlatFormTypes } from '../../core/models';
-import type { Product } from '../../core/models';
-import { ProductAutocompleteComponent } from '../../components/product-autocomplete/product-autocomplete';
+import { OutboundRecord } from '../../core/models';
+import { LayoutService, StoreService } from '../../core/services';
 
-interface LineItem { productId: string | null; qty: number; price: number; }
+interface LineItem {
+  productName: string;
+  productStyle: string;
+  qty: number;
+}
+
+type LineItemKey = 'productName' | 'productStyle' | 'qty';
 
 @Component({
   selector: 'page-manual-order',
-  imports: [FormsModule, MatFormFieldModule, MatInputModule, ProductAutocompleteComponent],
+  imports: [FormsModule, MatFormFieldModule, MatInputModule],
   templateUrl: './manual-order.page.html',
 })
 export class ManualOrderPage {
@@ -23,96 +26,80 @@ export class ManualOrderPage {
 
   readonly state = this.#store.state;
 
-  readonly orderNo = signal('');
-  readonly buyer = signal('');
-  readonly phone = signal('');
-  readonly addr = signal('');
-  readonly lines = signal<LineItem[]>([{ productId: null, qty: 1, price: 0 }]);
+  readonly recipientName = signal('');
+  readonly lines = signal<LineItem[]>([this.#blankLine()]);
 
-  readonly products = computed(() =>
-    [...this.state().products].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
+  readonly productNameOptions = computed(() =>
+    [...new Set(this.#knownProductKeys().map((item) => item.productName))].sort((a, b) =>
+      a.localeCompare(b, 'zh-Hant'),
+    ),
+  );
+  readonly productStyleOptions = computed(() =>
+    [...new Set(this.#knownProductKeys().map((item) => item.productStyle).filter(Boolean))].sort((a, b) =>
+      a.localeCompare(b, 'zh-Hant'),
+    ),
+  );
+  readonly activeLineCount = computed(() => this.lines().filter((line) => !this.#isBlankLine(line)).length);
+  readonly totalQty = computed(() =>
+    this.lines().reduce((sum, line) => sum + this.#toPositiveInteger(line.qty), 0),
   );
 
-  readonly total = computed(() =>
-    this.lines().reduce((s, l) => s + this.#toPositiveInteger(l.qty) * l.price, 0),
-  );
-
-  getProductName(productId: string | null): string {
-    if (!productId) return '—';
-    return this.#getProduct(productId)?.name ?? productId;
-  }
-
-  updateLine(i: number, key: keyof LineItem, v: string | number | null): void {
+  updateLine(i: number, key: LineItemKey, v: string | number): void {
     this.lines.update(ls => ls.map((l, idx) => {
       if (idx !== i) return l;
 
-      if (key === 'productId') {
-        return { ...l, productId: typeof v === 'string' && v.length > 0 ? v : null };
+      if (key === 'qty') {
+        const value = typeof v === 'number' ? v : Number(v);
+        return { ...l, qty: this.#toPositiveInteger(value) };
       }
 
-      const value = typeof v === 'number' ? v : Number(v);
-      const normalized =
-        key === 'qty'
-          ? this.#toPositiveInteger(value)
-          : Number.isFinite(value)
-            ? Math.max(0, value)
-            : 0;
-      return { ...l, [key]: normalized };
+      return { ...l, [key]: String(v) };
     }));
   }
-  addLine(): void { this.lines.update(ls => [...ls, { productId: null, qty: 1, price: 0 }]); }
-  rmLine(i: number): void { this.lines.update(ls => ls.filter((_, idx) => idx !== i)); }
 
-  submit(): void {
-    const lineError = this.#firstLineError();
-    if (lineError) {
-      this.#layout.showMessage(lineError);
-      return;
-    }
-
-    const no = this.orderNo().trim() || this.#nextOrderNo();
-    if (this.state().orders.some((order) => order.platform === PlatFormTypes.Manual && order.orderNo === no)) {
-      this.#layout.showMessage(`訂單編號已存在：${no}`);
-      return;
-    }
-
-    const now = new Date().toISOString();
-    this.#store.applyOrderImport({
-      result: { importedCount: 1, duplicateCount: 0, errorCount: 0, errors: [] },
-      orders: [{
-        id: nanoid(12),
-        platform: PlatFormTypes.Manual,
-        orderNo: no,
-        orderDate: now.slice(0, 10),
-        customerName: this.buyer().trim() || undefined,
-        customerPhone: this.phone().trim() || undefined,
-        address: this.addr().trim() || undefined,
-        amountTotal: this.total(),
-        importedAt: now,
-        lines: this.lines().map((l) => ({
-          lineId: nanoid(8),
-          platformProductName: this.getProductName(l.productId),
-          quantity: this.#toPositiveInteger(l.qty),
-          unitPrice: l.price,
-          subtotal: this.#toPositiveInteger(l.qty) * l.price,
-          mappedItems: [{ productId: l.productId!, quantity: 1 }],
-          isMatched: true,
-        })),
-      }],
-    });
-    this.#layout.showMessage(`訂單 ${no} 已建立`);
-    this.lines.set([{ productId: null, qty: 1, price: 0 }]);
-    this.orderNo.set('');
+  addLine(): void {
+    this.lines.update(ls => [...ls, this.#blankLine()]);
   }
 
-  #firstLineError(): string | null {
-    if (this.products().length === 0) {
-      return '請先在商品管理新增商品，再建立手動訂單';
+  rmLine(i: number): void {
+    if (this.lines().length > 1) {
+      this.lines.update(ls => ls.filter((_, idx) => idx !== i));
+    }
+  }
+
+  submit(): void {
+    const error = this.#formError();
+    if (error) {
+      this.#layout.showMessage(error);
+      return;
+    }
+
+    const importedAt = new Date().toISOString();
+    const records = this.#toOutboundRecords(importedAt);
+
+    this.#store.applyOutboundImport({
+      records,
+      result: { type: 'outbound', importedCount: records.length, errorCount: 0, errors: [] },
+    });
+    this.#layout.showMessage(`出貨已建立：${records.length} 項，共 ${this.totalQty().toLocaleString()} 件`);
+    this.lines.set([this.#blankLine()]);
+    this.recipientName.set('');
+  }
+
+  #formError(): string | null {
+    if (this.recipientName().trim().length === 0) {
+      return '請輸入收件人名稱';
+    }
+
+    if (this.activeLineCount() === 0) {
+      return '請至少輸入一筆商品項次';
     }
 
     for (const [index, line] of this.lines().entries()) {
-      if (!line.productId || !this.#getProduct(line.productId)) {
-        return `第 ${index + 1} 項請選擇既有商品`;
+      if (this.#isBlankLine(line)) continue;
+
+      if (line.productName.trim().length === 0) {
+        return `第 ${index + 1} 項商品名稱不可為空`;
       }
 
       if (this.#toPositiveInteger(line.qty) <= 0) {
@@ -123,22 +110,36 @@ export class ManualOrderPage {
     return null;
   }
 
-  #getProduct(productId: string): Product | undefined {
-    return this.state().products.find(p => p.id === productId);
+  #toOutboundRecords(importedAt: string): OutboundRecord[] {
+    return this.lines()
+      .filter((line) => !this.#isBlankLine(line))
+      .map((line) => ({
+        id: nanoid(12),
+        productName: line.productName.trim(),
+        productStyle: line.productStyle.trim(),
+        quantity: this.#toPositiveInteger(line.qty),
+        recipientName: this.recipientName().trim(),
+        importedAt,
+      }));
   }
 
-  #nextOrderNo(): string {
-    let orderNo = '';
+  #knownProductKeys() {
+    return [
+      ...this.#store.standardProductKeys(),
+      ...this.state().outbounds.map((record) => ({
+        productName: record.productName,
+        productStyle: record.productStyle,
+      })),
+    ];
+  }
 
-    do {
-      orderNo = `MN-${Math.floor(Math.random() * 90000 + 10000)}`;
-    } while (
-      this.state().orders.some(
-        (order) => order.platform === PlatFormTypes.Manual && order.orderNo === orderNo,
-      )
-    );
+  #blankLine(): LineItem {
+    return { productName: '', productStyle: '', qty: 1 };
+  }
 
-    return orderNo;
+  #isBlankLine(line: LineItem): boolean {
+    return line.productName.trim().length === 0 &&
+      line.productStyle.trim().length === 0;
   }
 
   #toPositiveInteger(value: number): number {

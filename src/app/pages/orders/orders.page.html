@@ -3,11 +3,11 @@
   <div class="masthead">
     <div class="masthead-left">
       <div>
-        <span class="eyebrow">Orders — Import &amp; Reconcile</span>
-        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">訂單上傳</h2>
+        <span class="eyebrow">Outbound — Import &amp; Reconcile</span>
+        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">出貨匯入</h2>
       </div>
     </div>
-    <div class="masthead-right"><div class="doc-no">FOLIO / 2026-04-22</div></div>
+    <div class="masthead-right"><div class="doc-no">OUTBOUND</div></div>
   </div>
 
   <div class="grid-3 gap-6" style="margin-top:22px;">
@@ -16,39 +16,23 @@
       <div class="file-card-head">
         <div>
           <div class="eyebrow">STEP 01 · 匯入</div>
-          <div class="file-card-title">選擇平台檔案</div>
+          <div class="file-card-title">選擇出貨檔案</div>
         </div>
         <span class="doc-no">.xlsx / .xls</span>
       </div>
       <div class="file-card-body" style="display:flex; flex-direction:column; gap:16px;">
-        <div>
-          <div class="eyebrow" style="margin-bottom:8px;">平台別</div>
-          <div class="platform-picker">
-            @for (entry of platformEntries; track entry.key) {
-              <button
-                class="plat-chip"
-                [class.active]="selectedPlatform() === entry.key"
-                (click)="setPlatform(entry.key)"
-              >
-                <span class="mono" style="font-size:10px; letter-spacing:0.2em; color:var(--ink-faint);">{{ entry.key }}</span>
-                <span class="serif">{{ entry.label }}</span>
-              </button>
-            }
-          </div>
-        </div>
-
         <app-dropzone
           accept=".xlsx,.xls"
           hint="或點選開啟檔案總管 · .xlsx / .xls"
           [disabled]="busy()"
-          (fileSelected)="handleOrderWorkbookSelected($event)"
+          (fileSelected)="handleOutboundWorkbookSelected($event)"
         />
 
         <div class="divider-ornament"><span>❦</span></div>
         <div class="mono" style="font-size:11px; color:var(--ink-muted); line-height:1.7;">
           · 首列需為欄位名稱<br>
-          · 訂單編號欄位不得為空<br>
-          · 金額需為阿拉伯數字
+          · 必填欄位：商品名稱、數量、收件人名稱<br>
+          · 商品款式可空白；空白不會自動扣庫存
         </div>
       </div>
     </div>
@@ -58,29 +42,19 @@
       <div class="file-card-head">
         <div>
           <div class="eyebrow">STEP 02 · 結果</div>
-          <div class="file-card-title">最新匯入效能報告</div>
+          <div class="file-card-title">最新匯入摘要</div>
         </div>
       </div>
       <div class="file-card-body">
-        <div class="grid-3 gap-4">
+        <div class="grid-2 gap-4">
           <div class="result-card">
             <div style="width:40px; height:40px; border-radius:10px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--mint-600); flex-shrink:0;">
               <span class="mat-icon">check_circle</span>
             </div>
             <div style="flex:1;">
-              <div class="eyebrow">成功匯入訂單</div>
+              <div class="eyebrow">成功匯入出貨</div>
               <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--mint-600);">{{ importSummary().importedCount }}</div>
-              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">已加入訂單列表</div>
-            </div>
-          </div>
-          <div class="result-card">
-            <div style="width:40px; height:40px; border-radius:10px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--warn); flex-shrink:0;">
-              <span class="mat-icon">content_copy</span>
-            </div>
-            <div style="flex:1;">
-              <div class="eyebrow">偵測到重複項</div>
-              <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--warn);">{{ importSummary().duplicateCount }}</div>
-              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">已自動略過同平台相同訂單編號</div>
+              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">已加入出貨紀錄</div>
             </div>
           </div>
           <div class="result-card">
@@ -120,17 +94,18 @@
     </div>
   </div>
 
-  <!-- 訂單列表 -->
+  <!-- 出貨列表 -->
   <div class="file-card" style="margin-top:24px;">
     <div class="file-card-head">
       <div>
-        <div class="eyebrow">LEDGER · 全部訂單</div>
-        <div class="file-card-title">訂單列表</div>
+        <div class="eyebrow">LEDGER · 全部出貨</div>
+        <div class="file-card-title">出貨紀錄</div>
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
-        <span class="tag">{{ orders().length }} 筆</span>
+        <span class="tag">{{ records().length }} 筆</span>
+        <span class="tag blue">{{ batches().length }} 批</span>
       </div>
     </div>
-    <order-table [orders]="orders()" (deleteOrder)="deleteOrder($event)" />
+    <outbound-table [records]="records()" (removeBatch)="removeBatch($event)" />
   </div>
 </div>

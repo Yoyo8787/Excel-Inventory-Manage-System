@@ -1,18 +1,7 @@
 export type Id = string;
-export type ProductId = Id;
-export type OrderId = Id;
 export type MappingId = Id;
 export type InboundId = Id;
-
-export const PlatFormTypes = {
-  A: '好蒔光',
-  B: '仙姑',
-  C: '綠崎',
-  Manual: '手動訂單',
-} as const;
-
-export type PlatformType = (typeof PlatFormTypes)[keyof typeof PlatFormTypes];
-export type DuplicateOrderPolicy = 'skip';
+export type OutboundId = Id;
 
 export interface SystemMeta {
   datasetName: string;

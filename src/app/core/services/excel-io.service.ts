@@ -7,24 +7,17 @@ import {
   AppState,
   ImportErrorRow,
   MappingItem,
-  Order,
-  OrderLine,
-  PlatformProductMapping,
-  PlatformType,
-  Product,
+  ProductAliasMapping,
   createEmptyAppState,
-  PlatFormTypes,
 } from '../models';
 
 type SheetRow = Record<string, unknown>;
 
 const SYSTEM_SHEETS = {
   meta: 'meta',
-  products: 'products',
-  mappings: 'mappings',
-  orders: 'orders',
-  orderLines: 'order_lines',
   inbounds: 'inbounds',
+  outbounds: 'outbounds',
+  mappings: 'mappings',
 } as const;
 
 @Injectable({ providedIn: 'root' })
@@ -38,22 +31,18 @@ export class ExcelIoService {
     const workbook = XLSX.read(buffer, { type: 'array' });
 
     const metaRows = this.#readRows(workbook, SYSTEM_SHEETS.meta);
-    const productRows = this.#readRows(workbook, SYSTEM_SHEETS.products);
-    const mappingRows = this.#readRows(workbook, SYSTEM_SHEETS.mappings);
-    const orderRows = this.#readRows(workbook, SYSTEM_SHEETS.orders);
-    const orderLineRows = this.#readRows(workbook, SYSTEM_SHEETS.orderLines);
     const inboundRows = this.#readRows(workbook, SYSTEM_SHEETS.inbounds);
-
+    const outboundRows = this.#readRows(workbook, SYSTEM_SHEETS.outbounds);
+    const mappingRows = this.#readRows(workbook, SYSTEM_SHEETS.mappings);
     const base = createEmptyAppState();
 
     return {
       ...base,
       meta: this.#parseMeta(metaRows),
       settings: this.#parseSettings(metaRows),
-      products: this.#parseProducts(productRows),
-      mappings: this.#parseMappings(mappingRows),
-      orders: this.#parseOrders(orderRows, orderLineRows),
       inbounds: this.#parseInbounds(inboundRows),
+      outbounds: this.#parseOutbounds(outboundRows),
+      mappings: this.#parseMappings(mappingRows),
     };
   }
 
@@ -81,8 +70,7 @@ export class ExcelIoService {
     const workbook = XLSX.utils.book_new();
     const rows = errors.map((error) => ({
       rowNumber: error.rowNumber,
-      platform: error.platform,
-      orderNo: error.orderNo ?? '',
+      type: error.type,
       field: error.field,
       reason: error.reason,
       raw: JSON.stringify(error.raw),
@@ -116,47 +104,27 @@ export class ExcelIoService {
       },
     ];
 
-    const productRows = state.products.map((product) => ({
-      id: product.id,
-      name: product.name,
-      lowStockThreshold: product.lowStockThreshold,
-      note: product.note ?? '',
-      createdAt: product.createdAt,
-      updatedAt: product.updatedAt,
+    const inboundRows = state.inbounds.map((record) => ({
+      id: record.id,
+      productName: record.productName,
+      productStyle: record.productStyle,
+      quantity: record.quantity,
+      importedAt: record.importedAt,
     }));
 
-    const mappingRows = this.#flattenMappings(state.mappings);
-
-    const orderRows = state.orders.map((order) => ({
-      id: order.id,
-      platform: order.platform,
-      orderNo: order.orderNo,
-      orderDate: order.orderDate,
-      customerName: order.customerName ?? '',
-      customerPhone: order.customerPhone ?? '',
-      amountTotal: order.amountTotal ?? '',
-      address: order.address ?? '',
-      note: order.note ?? '',
-      importedAt: order.importedAt,
-    }));
-
-    const orderLineRows = this.#flattenOrderLines(state.orders);
-
-    const inboundRows = state.inbounds.map((inbound) => ({
-      id: inbound.id,
-      productId: inbound.productId,
-      quantity: inbound.quantity,
-      inboundDate: inbound.inboundDate,
-      note: inbound.note ?? '',
-      createdAt: inbound.createdAt,
+    const outboundRows = state.outbounds.map((record) => ({
+      id: record.id,
+      productName: record.productName,
+      productStyle: record.productStyle,
+      quantity: record.quantity,
+      recipientName: record.recipientName,
+      importedAt: record.importedAt,
     }));
 
     this.#appendSheet(workbook, SYSTEM_SHEETS.meta, metaRows);
-    this.#appendSheet(workbook, SYSTEM_SHEETS.products, productRows);
-    this.#appendSheet(workbook, SYSTEM_SHEETS.mappings, mappingRows);
-    this.#appendSheet(workbook, SYSTEM_SHEETS.orders, orderRows);
-    this.#appendSheet(workbook, SYSTEM_SHEETS.orderLines, orderLineRows);
     this.#appendSheet(workbook, SYSTEM_SHEETS.inbounds, inboundRows);
+    this.#appendSheet(workbook, SYSTEM_SHEETS.outbounds, outboundRows);
+    this.#appendSheet(workbook, SYSTEM_SHEETS.mappings, this.#flattenMappings(state.mappings));
 
     return workbook;
   }
@@ -166,16 +134,17 @@ export class ExcelIoService {
     XLSX.utils.book_append_sheet(workbook, worksheet, sheetName);
   }
 
-  #flattenMappings(mappings: PlatformProductMapping[]): SheetRow[] {
+  #flattenMappings(mappings: ProductAliasMapping[]): SheetRow[] {
     const rows: SheetRow[] = [];
 
     for (const mapping of mappings) {
       if (mapping.items.length === 0) {
         rows.push({
           id: mapping.id,
-          platform: mapping.platform,
-          platformProductName: mapping.platformProductName,
-          productId: '',
+          sourceProductName: mapping.sourceProductName,
+          sourceProductStyle: mapping.sourceProductStyle,
+          targetProductName: '',
+          targetProductStyle: '',
           quantity: '',
           updatedAt: mapping.updatedAt,
         });
@@ -185,32 +154,12 @@ export class ExcelIoService {
       for (const item of mapping.items) {
         rows.push({
           id: mapping.id,
-          platform: mapping.platform,
-          platformProductName: mapping.platformProductName,
-          productId: item.productId,
+          sourceProductName: mapping.sourceProductName,
+          sourceProductStyle: mapping.sourceProductStyle,
+          targetProductName: item.productName,
+          targetProductStyle: item.productStyle,
           quantity: item.quantity,
           updatedAt: mapping.updatedAt,
-        });
-      }
-    }
-
-    return rows;
-  }
-
-  #flattenOrderLines(orders: Order[]): SheetRow[] {
-    const rows: SheetRow[] = [];
-
-    for (const order of orders) {
-      for (const line of order.lines) {
-        rows.push({
-          orderId: order.id,
-          lineId: line.lineId,
-          platformProductName: line.platformProductName,
-          unitPrice: line.unitPrice ?? '',
-          quantity: line.quantity,
-          subtotal: line.subtotal ?? '',
-          mappedItemsJson: JSON.stringify(line.mappedItems),
-          isMatched: line.isMatched ? 1 : 0,
         });
       }
     }
@@ -256,53 +205,79 @@ export class ExcelIoService {
     };
   }
 
-  #parseProducts(rows: SheetRow[]): Product[] {
-    const items: Product[] = [];
+  #parseInbounds(rows: SheetRow[]): AppState['inbounds'] {
+    const records: AppState['inbounds'] = [];
 
     for (const row of rows) {
       const id = this.#toOptionalString(row['id']);
-      const name = this.#toOptionalString(row['name']);
+      const productName = this.#toOptionalString(row['productName']);
+      const productStyle = this.#toOptionalString(row['productStyle']);
+      const quantity = this.#toPositiveInteger(row['quantity']);
+      const importedAt = this.#toIsoOrNull(row['importedAt']);
 
-      if (!id || !name) {
+      if (!id || !productName || !productStyle || quantity === null || !importedAt) {
         continue;
       }
 
-      const createdAt = this.#toIsoOrNull(row['createdAt']) ?? new Date().toISOString();
-      const updatedAt = this.#toIsoOrNull(row['updatedAt']) ?? createdAt;
-
-      items.push({
+      records.push({
         id,
-        name,
-        lowStockThreshold: this.#toNumberOrDefault(row['lowStockThreshold'], 0),
-        note: this.#toOptionalString(row['note']),
-        createdAt,
-        updatedAt,
+        productName,
+        productStyle,
+        quantity,
+        importedAt,
       });
     }
 
-    return items;
+    return records;
   }
 
-  #parseMappings(rows: SheetRow[]): PlatformProductMapping[] {
-    const map = new Map<string, PlatformProductMapping>();
+  #parseOutbounds(rows: SheetRow[]): AppState['outbounds'] {
+    const records: AppState['outbounds'] = [];
 
     for (const row of rows) {
       const id = this.#toOptionalString(row['id']);
-      const platform = this.#toPlatform(row['platform']);
-      const platformProductName = this.#toOptionalString(row['platformProductName']);
+      const productName = this.#toOptionalString(row['productName']);
+      const productStyle = this.#toString(row['productStyle']);
+      const quantity = this.#toPositiveInteger(row['quantity']);
+      const recipientName = this.#toOptionalString(row['recipientName']);
+      const importedAt = this.#toIsoOrNull(row['importedAt']);
 
-      if (!id || !platform || !platformProductName) {
+      if (!id || !productName || quantity === null || !recipientName || !importedAt) {
         continue;
       }
 
-      const key = id;
-      const existing = map.get(key);
+      records.push({
+        id,
+        productName,
+        productStyle,
+        quantity,
+        recipientName,
+        importedAt,
+      });
+    }
+
+    return records;
+  }
+
+  #parseMappings(rows: SheetRow[]): ProductAliasMapping[] {
+    const map = new Map<string, ProductAliasMapping>();
+
+    for (const row of rows) {
+      const id = this.#toOptionalString(row['id']);
+      const sourceProductName = this.#toOptionalString(row['sourceProductName']);
+      const sourceProductStyle = this.#toString(row['sourceProductStyle']);
+
+      if (!id || !sourceProductName) {
+        continue;
+      }
+
+      const existing = map.get(id);
 
       if (!existing) {
-        map.set(key, {
+        map.set(id, {
           id,
-          platform,
-          platformProductName,
+          sourceProductName,
+          sourceProductStyle,
           items: this.#parseMappingItem(row),
           updatedAt: this.#toIsoOrNull(row['updatedAt']) ?? new Date().toISOString(),
         });
@@ -319,174 +294,50 @@ export class ExcelIoService {
   }
 
   #parseMappingItem(row: SheetRow): MappingItem[] {
-    const productId = this.#toOptionalString(row['productId']);
+    const productName = this.#toOptionalString(row['targetProductName']);
+    const productStyle = this.#toOptionalString(row['targetProductStyle']);
     const quantity = this.#toPositiveInteger(row['quantity']);
 
-    if (!productId || quantity === null) {
+    if (!productName || !productStyle || quantity === null) {
       return [];
     }
 
     return [
       {
-        productId,
+        productName,
+        productStyle,
         quantity,
       },
     ];
   }
 
   #dedupeMappingItems(items: MappingItem[]): MappingItem[] {
-    const map = new Map<string, number>();
+    const map = new Map<string, MappingItem>();
 
     for (const item of items) {
-      const next = (map.get(item.productId) ?? 0) + item.quantity;
-      map.set(item.productId, next);
-    }
-
-    return [...map.entries()].map(([productId, quantity]) => ({
-      productId,
-      quantity,
-    }));
-  }
-
-  #parseOrders(orderRows: SheetRow[], orderLineRows: SheetRow[]): Order[] {
-    const orderMap = new Map<string, Order>();
-
-    for (const row of orderRows) {
-      const id = this.#toOptionalString(row['id']);
-      const platform = this.#toPlatform(row['platform']);
-      const orderNo = this.#toOptionalString(row['orderNo']);
-      const orderDate = this.#toIsoOrNull(row['orderDate']);
-      const importedAt = this.#toIsoOrNull(row['importedAt']);
-
-      if (!id || !platform || !orderNo || !orderDate || !importedAt) {
-        continue;
-      }
-
-      orderMap.set(id, {
-        id,
-        platform,
-        orderNo,
-        orderDate,
-        customerName: this.#toOptionalString(row['customerName']),
-        customerPhone: this.#toOptionalString(row['customerPhone']),
-        amountTotal: this.#toOptionalNumber(row['amountTotal']) ?? undefined,
-        address: this.#toOptionalString(row['address']),
-        note: this.#toOptionalString(row['note']),
-        lines: [],
-        importedAt,
+      const key = this.#recordKey(item.productName, item.productStyle);
+      const current = map.get(key);
+      map.set(key, {
+        productName: item.productName,
+        productStyle: item.productStyle,
+        quantity: (current?.quantity ?? 0) + item.quantity,
       });
     }
 
-    for (const row of orderLineRows) {
-      const orderId = this.#toOptionalString(row['orderId']);
-      const line = this.#parseOrderLine(row);
-
-      if (!orderId || !line) {
-        continue;
-      }
-
-      const order = orderMap.get(orderId);
-      if (!order) {
-        continue;
-      }
-
-      order.lines.push(line);
-    }
-
-    return [...orderMap.values()];
-  }
-
-  #parseOrderLine(row: SheetRow): OrderLine | null {
-    const lineId = this.#toOptionalString(row['lineId']);
-    const platformProductName = this.#toOptionalString(row['platformProductName']);
-    const quantity = this.#toPositiveInteger(row['quantity']);
-
-    if (!lineId || !platformProductName || quantity === null) {
-      return null;
-    }
-
-    const mappedItems = this.#parseMappedItems(row['mappedItemsJson']);
-
-    return {
-      lineId,
-      platformProductName,
-      unitPrice: this.#toOptionalNumber(row['unitPrice']) ?? undefined,
-      quantity,
-      subtotal: this.#toOptionalNumber(row['subtotal']) ?? undefined,
-      mappedItems,
-      isMatched: this.#toBoolean(row['isMatched']),
-    };
-  }
-
-  #parseMappedItems(value: unknown): MappingItem[] {
-    if (typeof value !== 'string' || value.trim().length === 0) {
-      return [];
-    }
-
-    try {
-      const parsed = JSON.parse(value) as unknown;
-      if (!Array.isArray(parsed)) {
-        return [];
-      }
-
-      return parsed
-        .map((item) => {
-          if (!item || typeof item !== 'object') {
-            return null;
-          }
-
-          const objectItem = item as Record<string, unknown>;
-          const productId = this.#toOptionalString(objectItem['productId']);
-          const quantity = this.#toPositiveInteger(objectItem['quantity']);
-
-          if (!productId || quantity === null) {
-            return null;
-          }
-
-          return {
-            productId,
-            quantity,
-          } satisfies MappingItem;
-        })
-        .filter((item): item is MappingItem => item !== null);
-    } catch {
-      return [];
-    }
-  }
-
-  #parseInbounds(rows: SheetRow[]): AppState['inbounds'] {
-    const items: AppState['inbounds'] = [];
-
-    for (const row of rows) {
-      const id = this.#toOptionalString(row['id']);
-      const productId = this.#toOptionalString(row['productId']);
-      const quantity = this.#toPositiveInteger(row['quantity']);
-      const inboundDate = this.#toIsoOrNull(row['inboundDate']);
-
-      if (!id || !productId || quantity === null || !inboundDate) {
-        continue;
-      }
-
-      items.push({
-        id,
-        productId,
-        quantity,
-        inboundDate,
-        note: this.#toOptionalString(row['note']),
-        createdAt: this.#toIsoOrNull(row['createdAt']) ?? new Date().toISOString(),
-      });
-    }
-
-    return items;
+    return [...map.values()];
   }
 
   #toOptionalString(value: unknown): string | undefined {
+    const normalized = this.#toString(value);
+    return normalized.length > 0 ? normalized : undefined;
+  }
+
+  #toString(value: unknown): string {
     if (value === null || value === undefined) {
-      return undefined;
+      return '';
     }
 
-    const normalized = String(value).trim();
-    return normalized.length > 0 ? normalized : undefined;
+    return String(value).trim();
   }
 
   #toNumberOrDefault(value: unknown, fallback: number): number {
@@ -537,33 +388,8 @@ export class ExcelIoService {
     return parsed.isValid() ? parsed.toISOString() : null;
   }
 
-  #toPlatform(value: unknown): PlatformType | null {
-    const raw = this.#toOptionalString(value)?.toUpperCase();
-
-    if (
-      raw === PlatFormTypes.A ||
-      raw === PlatFormTypes.B ||
-      raw === PlatFormTypes.C ||
-      raw === PlatFormTypes.Manual
-    ) {
-      return raw;
-    }
-
-    return null;
-  }
-
-  #toBoolean(value: unknown): boolean {
-    if (typeof value === 'boolean') {
-      return value;
-    }
-
-    if (typeof value === 'number') {
-      return value !== 0;
-    }
-
-    const normalized = this.#toOptionalString(value)?.toLowerCase();
-
-    return normalized === '1' || normalized === 'true' || normalized === 'yes';
+  #recordKey(productName: string, productStyle: string): string {
+    return `${productName.trim()}\u0000${productStyle.trim()}`;
   }
 
   #safeName(value: string): string {

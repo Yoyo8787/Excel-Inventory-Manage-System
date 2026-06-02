@@ -1,10 +1,9 @@
-import type { InboundId, ProductId } from './system.model';
+import type { InboundId } from './system.model';
 
 export interface InboundRecord {
   id: InboundId;
-  productId: ProductId;
+  productName: string;
+  productStyle: string;
   quantity: number;
-  inboundDate: string;
-  note?: string;
-  createdAt: string;
+  importedAt: string;
 }

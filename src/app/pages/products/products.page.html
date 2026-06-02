@@ -2,15 +2,14 @@
   <div class="masthead">
     <div class="masthead-left">
       <div>
-        <span class="eyebrow">Product Catalogue — Master File</span>
-        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">商品清單</h2>
+        <span class="eyebrow">Inventory Catalogue — Product + Style</span>
+        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">庫存與配對</h2>
       </div>
     </div>
     <div class="masthead-right"><div class="doc-no">CAT / {{ state().meta.datasetName }}</div></div>
   </div>
 
   <div class="grid-3 gap-6" style="margin-top:22px;">
-    <!-- 商品主表 -->
     <div class="file-card" style="grid-column:span 2;">
       <div class="file-card-head">
         <div style="display:flex; gap:12px; align-items:center; flex:1;">
@@ -18,73 +17,51 @@
           <input
             [value]="q()"
             (input)="q.set($any($event.target).value)"
-            placeholder="搜尋商品 ID 或品名 ······"
+            placeholder="搜尋商品名稱或款式 ······"
             style="flex:1; background:transparent; border:none; outline:none; font-size:15px; color:var(--ink); font-family:var(--font-sans);"
           />
           <span class="mono" style="font-size:11px; color:var(--ink-faint);">
-            {{ filtered().length }} / {{ state().products.length }}
+            {{ filtered().length }} / {{ snapshots().length }}
           </span>
         </div>
-        <button class="btn btn-sm btn-primary" (click)="openAddProduct()">
-          <span class="mat-icon sm">add</span>新增商品
-        </button>
       </div>
 
-      @if (state().products.length === 0) {
+      @if (snapshots().length === 0) {
         <div class="file-card-body" style="text-align:center; padding:60px 20px;">
           <span class="mat-icon lg" style="color:var(--ink-faint); display:block; margin-bottom:12px;">inventory_2</span>
-          <div class="mono" style="letter-spacing:0.15em; color:var(--ink-faint);">— 尚無商品資料 —</div>
-          <div class="margin-note" style="margin-top:8px;">請先載入含商品資料的 Workbook，或點選「新增商品」</div>
+          <div class="mono" style="letter-spacing:0.15em; color:var(--ink-faint);">— 尚無庫存資料 —</div>
+          <div class="margin-note" style="margin-top:8px;">請先新增或匯入進貨紀錄</div>
         </div>
       } @else {
         <table class="ledger-table">
           <thead>
             <tr>
               <th class="row-num">№</th>
-              <th style="width:180px;">商品 ID</th>
-              <th>品名</th>
-              <th class="num" style="width:100px;">安全庫存量</th>
-              <th class="num" style="width:70px;">配對數</th>
-              <th style="width:80px;"></th>
+              <th>商品名稱</th>
+              <th>商品款式</th>
+              <th class="num" style="width:90px;">進貨</th>
+              <th class="num" style="width:90px;">出貨扣除</th>
+              <th class="num" style="width:90px;">目前庫存</th>
+              <th style="width:90px;">低庫存</th>
             </tr>
           </thead>
           <tbody>
-            @for (p of filtered(); track p.id; let i = $index) {
+            @for (p of filtered(); track p.key; let i = $index) {
               <tr
                 style="cursor:pointer;"
-                [style.background]="active()?.id === p.id ? 'var(--mint-50)' : (confirmDeleteProductId() === p.id ? 'var(--danger-soft)' : '')"
-                (click)="selectProduct(p)"
+                [style.background]="active()?.key === p.key ? 'var(--mint-50)' : ''"
+                (click)="selectSnapshot(p)"
               >
                 <td class="row-num">{{ (i+1).toString().padStart(3,'0') }}</td>
-                <td class="mono" style="font-size:11px;">{{ p.id }}</td>
-                <td style="font-weight:600;">{{ p.name }}</td>
-                <td class="num mono">{{ p.lowStockThreshold }}</td>
-                <td class="num">
-                  <span class="tag" style="font-size:10px;">{{ mappingCount(p.id) }}</span>
-                </td>
+                <td style="font-weight:600;">{{ p.productName }}</td>
+                <td>{{ p.productStyle }}</td>
+                <td class="num mono">{{ p.inboundTotal.toLocaleString() }}</td>
+                <td class="num mono">{{ p.deductedTotal.toLocaleString() }}</td>
+                <td class="num mono" [style.color]="p.onHand < 0 ? 'var(--danger)' : ''">{{ p.onHand.toLocaleString() }}</td>
                 <td>
-                  @if (confirmDeleteProductId() === p.id) {
-                    <div style="display:flex; gap:4px; align-items:center;" (click)="$event.stopPropagation()">
-                      <button
-                        class="btn btn-sm"
-                        style="background:var(--danger); color:#fff; border-color:var(--danger); padding:3px 8px; font-size:11px;"
-                        (click)="confirmDeleteProduct(p)"
-                      >確認</button>
-                      <button
-                        class="btn btn-sm"
-                        style="padding:3px 8px; font-size:11px;"
-                        (click)="cancelDeleteProduct()"
-                      >取消</button>
-                    </div>
-                  } @else {
-                    <button
-                      class="btn btn-ghost btn-icon"
-                      title="刪除商品"
-                      (click)="$event.stopPropagation(); requestDeleteProduct(p.id)"
-                    >
-                      <span class="mat-icon sm" style="color:var(--ink-faint);">delete_outline</span>
-                    </button>
-                  }
+                  <span class="tag dot" [class.red]="p.isLowStock" [class.green]="!p.isLowStock">
+                    {{ p.isLowStock ? '是' : '否' }}
+                  </span>
                 </td>
               </tr>
             }
@@ -93,95 +70,81 @@
       }
     </div>
 
-    <!-- 配對面板 -->
     <div class="file-card">
       <div class="file-card-head">
         <div>
-          <div class="eyebrow">MAPPING · 實際貨物 × 平台</div>
-          <div class="file-card-title">商品配對</div>
+          <div class="eyebrow">MAPPING · 出貨 → 庫存</div>
+          <div class="file-card-title">配對規則</div>
         </div>
       </div>
 
-      @if (!active()) {
-        <div class="file-card-body" style="text-align:center; padding:40px 16px;">
-          <span class="mat-icon" style="color:var(--ink-faint); display:block; margin-bottom:8px; font-size:24px;">link_off</span>
-          <div class="mono" style="color:var(--ink-faint); font-size:12px;">← 請先選擇左側商品</div>
-        </div>
-      } @else {
-        <div class="file-card-body">
-          <!-- 選定商品資訊 -->
+      <div class="file-card-body">
+        @if (active()) {
           <div style="padding:10px 14px; border:1px solid var(--hairline); background:var(--surface-2); border-radius:var(--r-sm);">
-            <div class="eyebrow" style="margin-bottom:4px;">實際貨物 · MASTER</div>
-            <div class="serif" style="font-size:16px; font-weight:700;">{{ active()!.name }}</div>
+            <div class="eyebrow" style="margin-bottom:4px;">選定庫存品項</div>
+            <div class="serif" style="font-size:16px; font-weight:700;">{{ active()!.productName }}</div>
             <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:2px;">
-              ID：{{ active()!.id }}
-            </div>
-            <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:6px;">
-              安全庫存量：{{ active()!.lowStockThreshold }}
-              @if (active()!.note) { · {{ active()!.note }} }
+              款式：{{ active()!.productStyle }}
             </div>
           </div>
+        }
 
-          <div class="divider-ornament" style="margin:14px 0;">
-            <span class="serif" style="font-size:13px;">⇵ 平台對應</span>
+        <button
+          class="btn btn-ghost"
+          style="width:100%; justify-content:center; margin-top:12px; border-style:dashed;"
+          (click)="openMappingDialog()"
+        >
+          <span class="mat-icon sm">add_link</span>新增出貨配對
+        </button>
+
+        <div class="divider-ornament" style="margin:18px 0 10px;"><span>RULES</span></div>
+
+        @if (mappings().length === 0) {
+          <div style="text-align:center; padding:16px 0;">
+            <div class="mono" style="font-size:11px; color:var(--ink-faint);">尚無配對規則</div>
           </div>
-
-          @if (activeMappings().length === 0) {
-            <div style="text-align:center; padding:16px 0;">
-              <div class="mono" style="font-size:11px; color:var(--ink-faint);">尚無配對規則</div>
-            </div>
-          } @else {
-            @for (m of activeMappings(); track m.id) {
-              <div style="padding:10px 12px; border:1px dashed var(--hairline); margin-bottom:8px; border-radius:var(--r-sm); position:relative;">
-                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
-                  <span class="tag blue dot">{{ m.platform }}</span>
-                  <button
-                    class="btn btn-ghost btn-icon"
-                    style="width:22px; height:22px; flex-shrink:0;"
-                    title="移除此配對"
-                    (click)="deleteMapping(m.id, m.platformProductName)"
-                  >
-                    <span class="mat-icon sm" style="font-size:13px;">close</span>
-                  </button>
-                </div>
-                <div style="font-size:13px; font-weight:600; line-height:1.4; margin-bottom:6px;">{{ m.platformProductName }}</div>
-                <!-- 對應的貨物 items -->
-                @for (item of m.items; track item.productId) {
-                  <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--ink-muted); padding:2px 0; border-top:1px solid var(--hairline);">
-                    <span>{{ getProduct(item.productId)?.name ?? '（已刪除商品）' }}</span>
-                    <span class="mono tag" style="font-size:10px;">× {{ item.quantity }}</span>
-                  </div>
-                }
+        } @else {
+          @for (m of mappings(); track m.id) {
+            <div style="padding:10px 12px; border:1px dashed var(--hairline); margin-bottom:8px; border-radius:var(--r-sm); position:relative;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+                <span class="tag blue dot">出貨別名</span>
+                <button
+                  class="btn btn-ghost btn-icon"
+                  style="width:22px; height:22px; flex-shrink:0;"
+                  title="移除此配對"
+                  (click)="deleteMapping(m.id, m.sourceProductName, m.sourceProductStyle)"
+                >
+                  <span class="mat-icon sm" style="font-size:13px;">close</span>
+                </button>
               </div>
-            }
+              <div style="font-size:13px; font-weight:600; line-height:1.4; margin-bottom:6px;">
+                {{ m.sourceProductName }} / {{ formatStyle(m.sourceProductStyle) }}
+              </div>
+              @for (item of m.items; track item.productName + item.productStyle) {
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:11px; color:var(--ink-muted); padding:2px 0; border-top:1px solid var(--hairline);">
+                  <span>{{ item.productName }} / {{ item.productStyle }}</span>
+                  <span class="mono tag" style="font-size:10px;">× {{ item.quantity }}</span>
+                </div>
+              }
+            </div>
           }
+        }
 
-          <button
-            class="btn btn-ghost"
-            style="width:100%; justify-content:center; margin-top:8px; border-style:dashed;"
-            (click)="openMappingDialog()"
-          >
-            <span class="mat-icon sm">add_link</span>新增平台配對
-          </button>
-
-          <div class="divider-ornament" style="margin:18px 0 10px;"><span>§</span></div>
+        @if (activeMappings().length > 0) {
+          <div class="divider-ornament" style="margin:18px 0 10px;"><span>ACTIVE</span></div>
           <div class="mono" style="font-size:11px; color:var(--ink-muted); line-height:1.7;">
-            · 同一實際貨物可對應多個平台商品<br>
-            · 一個平台商品可消耗多種實際貨物<br>
-            · 匯入訂單時系統自動依此表扣庫<br>
-            · 若無配對則需手動指派
+            選定品項目前被 {{ activeMappings().length }} 條出貨配對扣庫。
           </div>
-        </div>
-      }
+        }
+      </div>
     </div>
   </div>
 
-  <!-- 待配對清單 -->
-  @if (unmatchedByPlatform().length > 0) {
+  @if (unmatchedGroups().length > 0) {
     <div class="file-card" style="margin-top:20px;">
       <div class="file-card-head">
         <div>
-          <div class="eyebrow">UNMATCHED · 待配對平台商品</div>
+          <div class="eyebrow">UNMATCHED · 待配對出貨</div>
           <div class="file-card-title">
             尚未配對清單
             <span class="tag ochre dot" style="margin-left:8px; font-size:10px;">
@@ -189,44 +152,39 @@
             </span>
           </div>
         </div>
-        <div class="mono" style="font-size:11px; color:var(--ink-muted);">點選「設定配對」建立對應關係</div>
+        <div class="mono" style="font-size:11px; color:var(--ink-muted);">點選「設定配對」建立出貨別名規則</div>
       </div>
       <div class="file-card-body" style="padding:0;">
-        @for (group of unmatchedByPlatform(); track group.platform) {
-          <div style="border-bottom:1px solid var(--hairline);">
-            <div style="padding:8px 20px; background:var(--surface-2); border-bottom:1px solid var(--hairline);">
-              <span class="tag blue dot" style="font-size:11px;">{{ group.platform }}</span>
-            </div>
-            <table class="ledger-table" style="margin:0;">
-              <thead>
-                <tr>
-                  <th>平台商品名稱</th>
-                  <th class="num" style="width:80px;">出現次數</th>
-                  <th style="width:110px;"></th>
-                </tr>
-              </thead>
-              <tbody>
-                @for (u of group.items; track u.platformProductName) {
-                  <tr>
-                    <td style="font-weight:500;">{{ u.platformProductName }}</td>
-                    <td class="num mono">
-                      {{ countUnmatched(group.platform, u.platformProductName) }}
-                    </td>
-                    <td>
-                      <button
-                        class="btn btn-sm"
-                        style="font-size:11px;"
-                        (click)="openMappingDialog({ platform: group.platform, platformProductName: u.platformProductName })"
-                      >
-                        <span class="mat-icon sm" style="font-size:12px;">link</span>設定配對
-                      </button>
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        }
+        <table class="ledger-table" style="margin:0;">
+          <thead>
+            <tr>
+              <th>商品名稱</th>
+              <th>商品款式</th>
+              <th class="num" style="width:80px;">筆數</th>
+              <th class="num" style="width:90px;">數量</th>
+              <th style="width:120px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (group of unmatchedGroups(); track group.key) {
+              <tr>
+                <td style="font-weight:500;">{{ group.productName }}</td>
+                <td>{{ formatStyle(group.productStyle) }}</td>
+                <td class="num mono">{{ group.count }}</td>
+                <td class="num mono">{{ group.quantity }}</td>
+                <td>
+                  <button
+                    class="btn btn-sm"
+                    style="font-size:11px;"
+                    (click)="openMappingDialog({ productName: group.productName, productStyle: group.productStyle })"
+                  >
+                    <span class="mat-icon sm" style="font-size:12px;">link</span>設定配對
+                  </button>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
       </div>
     </div>
   }

@@ -5,20 +5,35 @@ import {
   InboundRecord,
   ImportJobResult,
   InventorySnapshot,
-  MappingItem,
   MappingId,
-  Order,
-  PlatformProductMapping,
-  Product,
-  ProductId,
-  UnmatchedProduct,
-  PlatFormTypes,
+  MappingItem,
+  OutboundRecord,
+  ProductAliasMapping,
+  ProductKey,
+  UnmatchedOutbound,
   createEmptyAppState,
 } from '../models';
 
-export interface OrderImportApplyPayload {
-  orders: Order[];
+export interface InboundImportApplyPayload {
+  records: InboundRecord[];
   result: ImportJobResult;
+}
+
+export interface OutboundImportApplyPayload {
+  records: OutboundRecord[];
+  result: ImportJobResult;
+}
+
+export interface ImportBatchSummary {
+  importedAt: string;
+  count: number;
+  quantity: number;
+}
+
+interface QuantityBucket {
+  productName: string;
+  productStyle: string;
+  quantity: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -29,94 +44,116 @@ export class StoreService {
 
   readonly isLoaded = computed(() => this.#state().meta.loadedAt !== null);
 
-  readonly productCount = computed(() => this.#state().products.length);
+  readonly inboundCount = computed(() => this.#state().inbounds.length);
 
-  readonly orderCount = computed(() => this.#state().orders.length);
-
-  readonly unmatchedProducts = computed<UnmatchedProduct[]>(() => {
-    const { orders, mappings } = this.#state();
-    const seen = new Set<string>();
-    const result: UnmatchedProduct[] = [];
-
-    for (const order of orders) {
-      for (const line of order.lines) {
-        const key = `${order.platform}::${line.platformProductName}`;
-        const mappedItems = this.#resolveMappedItems(
-          order,
-          line.platformProductName,
-          line.mappedItems,
-          mappings,
-        );
-
-        if (mappedItems.length === 0 && !seen.has(key)) {
-          seen.add(key);
-          result.push({
-            platform: order.platform,
-            platformProductName: line.platformProductName,
-            orderNo: order.orderNo,
-            orderLineId: line.lineId,
-            quantity: line.quantity,
-            detectedAt: order.importedAt,
-          });
-        }
-      }
-    }
-
-    return result;
-  });
-
-  readonly unmatchedCount = computed(() => this.unmatchedProducts().length);
+  readonly outboundCount = computed(() => this.#state().outbounds.length);
 
   readonly inventorySnapshots = computed<InventorySnapshot[]>(() => {
-    const { products, inbounds, orders, mappings } = this.#state();
-    const inboundMap = new Map<ProductId, number>();
-    const deductedMap = new Map<ProductId, number>();
+    const state = this.#state();
+    const inboundMap = new Map<string, QuantityBucket>();
+    const deductedMap = new Map<string, QuantityBucket>();
+    const inboundKeys = new Set<string>();
 
-    for (const record of inbounds) {
-      const current = inboundMap.get(record.productId) ?? 0;
-      inboundMap.set(record.productId, current + record.quantity);
+    for (const record of state.inbounds) {
+      const key = this.#recordKey(record.productName, record.productStyle);
+      inboundKeys.add(key);
+      const current = inboundMap.get(key);
+      inboundMap.set(key, {
+        productName: record.productName,
+        productStyle: record.productStyle,
+        quantity: (current?.quantity ?? 0) + record.quantity,
+      });
     }
 
-    for (const order of orders) {
-      for (const line of order.lines) {
-        const mappedItems = this.#resolveMappedItems(
-          order,
-          line.platformProductName,
-          line.mappedItems,
-          mappings,
-        );
-
-        for (const item of mappedItems) {
-          const current = deductedMap.get(item.productId) ?? 0;
-          deductedMap.set(item.productId, current + line.quantity * item.quantity);
-        }
+    for (const record of state.outbounds) {
+      for (const item of this.#resolveOutboundTargets(record, inboundKeys, state.mappings)) {
+        const key = this.#recordKey(item.productName, item.productStyle);
+        const current = deductedMap.get(key);
+        deductedMap.set(key, {
+          productName: item.productName,
+          productStyle: item.productStyle,
+          quantity: (current?.quantity ?? 0) + record.quantity * item.quantity,
+        });
       }
     }
 
-    return products
-      .map((p) => ({
-        productId: p.id,
-        productName: p.name,
-        inboundTotal: inboundMap.get(p.id) ?? 0,
-        deductedTotal: deductedMap.get(p.id) ?? 0,
-        restockedTotal: 0,
-        onHand: (inboundMap.get(p.id) ?? 0) - (deductedMap.get(p.id) ?? 0),
-        isLowStock:
-          (inboundMap.get(p.id) ?? 0) - (deductedMap.get(p.id) ?? 0) <= p.lowStockThreshold,
-      }))
-      .sort((a, b) => a.productName.localeCompare(b.productName, 'zh-Hant'));
+    const keys = new Set([...inboundMap.keys(), ...deductedMap.keys()]);
+
+    return [...keys]
+      .map((key) => {
+        const inbound = inboundMap.get(key);
+        const deducted = deductedMap.get(key);
+        const productName = inbound?.productName ?? deducted?.productName ?? '';
+        const productStyle = inbound?.productStyle ?? deducted?.productStyle ?? '';
+        const inboundTotal = inbound?.quantity ?? 0;
+        const deductedTotal = deducted?.quantity ?? 0;
+        const onHand = inboundTotal - deductedTotal;
+
+        return {
+          key,
+          productName,
+          productStyle,
+          inboundTotal,
+          deductedTotal,
+          onHand,
+          isLowStock: onHand <= state.settings.defaultLowStockThreshold,
+        };
+      })
+      .sort((a, b) =>
+        a.productName.localeCompare(b.productName, 'zh-Hant') ||
+        a.productStyle.localeCompare(b.productStyle, 'zh-Hant')
+      );
   });
 
-  readonly lowStockProducts = computed(() => {
-    const productMap = new Map(this.#state().products.map((p) => [p.id, p]));
+  readonly standardProductKeys = computed<ProductKey[]>(() => {
+    const seen = new Set<string>();
+    const keys: ProductKey[] = [];
 
-    return this.inventorySnapshots()
-      .filter((snapshot) => snapshot.isLowStock)
-      .map((snapshot) => ({
-        ...productMap.get(snapshot.productId)!,
-        stockQty: snapshot.onHand,
+    for (const record of this.#state().inbounds) {
+      const key = this.#recordKey(record.productName, record.productStyle);
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      keys.push({
+        productName: record.productName,
+        productStyle: record.productStyle,
+      });
+    }
+
+    return keys.sort((a, b) =>
+      a.productName.localeCompare(b.productName, 'zh-Hant') ||
+      a.productStyle.localeCompare(b.productStyle, 'zh-Hant')
+    );
+  });
+
+  readonly lowStockProducts = computed(() =>
+    this.inventorySnapshots().filter((snapshot) => snapshot.isLowStock),
+  );
+
+  readonly unmatchedOutbounds = computed<UnmatchedOutbound[]>(() => {
+    const state = this.#state();
+    const inboundKeys = new Set(
+      state.inbounds.map((record) => this.#recordKey(record.productName, record.productStyle)),
+    );
+
+    return state.outbounds
+      .filter((record) => this.#resolveOutboundTargets(record, inboundKeys, state.mappings).length === 0)
+      .map((record) => ({
+        outboundId: record.id,
+        productName: record.productName,
+        productStyle: record.productStyle,
+        quantity: record.quantity,
+        recipientName: record.recipientName,
+        importedAt: record.importedAt,
       }));
   });
+
+  readonly unmatchedCount = computed(() => this.unmatchedOutbounds().length);
+
+  readonly inboundBatches = computed(() => this.#batchSummaries(this.#state().inbounds));
+
+  readonly outboundBatches = computed(() => this.#batchSummaries(this.#state().outbounds));
 
   get snapshot(): AppState {
     return this.#state();
@@ -144,12 +181,14 @@ export class StoreService {
     const base = createEmptyAppState();
 
     this.#state.set({
+      ...base,
       ...state,
       settings: {
         ...base.settings,
         ...(state.settings ?? {}),
       },
       meta: {
+        ...base.meta,
         ...state.meta,
         datasetName: datasetName ?? state.meta.datasetName,
         loadedAt: now,
@@ -158,6 +197,7 @@ export class StoreService {
         isDirty: false,
         reasons: [],
       },
+      lastImportResult: null,
     });
   }
 
@@ -166,25 +206,13 @@ export class StoreService {
   }
 
   markDirty(reason: string): void {
-    this.#state.update((current) => {
-      if (current.dirty.reasons.includes(reason)) {
-        return {
-          ...current,
-          dirty: {
-            ...current.dirty,
-            isDirty: true,
-          },
-        };
-      }
-
-      return {
-        ...current,
-        dirty: {
-          isDirty: true,
-          reasons: [...current.dirty.reasons, reason],
-        },
-      };
-    });
+    this.#state.update((current) => ({
+      ...current,
+      dirty: {
+        isDirty: true,
+        reasons: this.#appendDirtyReason(current.dirty.reasons, reason),
+      },
+    }));
   }
 
   clearDirty(): void {
@@ -220,14 +248,6 @@ export class StoreService {
     }));
   }
 
-  addProduct(product: Product): void {
-    this.#state.update((s) => ({
-      ...s,
-      products: [...s.products, product],
-      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'product_add') },
-    }));
-  }
-
   updateDefaultLowStockThreshold(value: number): void {
     const threshold = Number.isFinite(value) ? Math.max(0, Math.floor(value)) : 0;
 
@@ -244,22 +264,18 @@ export class StoreService {
     }));
   }
 
-  deleteProduct(productId: ProductId): void {
-    this.#state.update((s) => ({
-      ...s,
-      products: s.products.filter((p) => p.id !== productId),
-      mappings: s.mappings
-        .map((m) => ({ ...m, items: m.items.filter((i) => i.productId !== productId) }))
-        .filter((m) => m.items.length > 0),
-      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'product_delete') },
-    }));
-  }
+  addMapping(mapping: ProductAliasMapping): void {
+    const sourceKey = this.#recordKey(mapping.sourceProductName, mapping.sourceProductStyle);
 
-  addMapping(mapping: PlatformProductMapping): void {
     this.#state.update((s) => ({
       ...s,
-      mappings: [...s.mappings, mapping],
-      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'mapping_add') },
+      mappings: [
+        ...s.mappings.filter(
+          (item) => this.#recordKey(item.sourceProductName, item.sourceProductStyle) !== sourceKey,
+        ),
+        mapping,
+      ],
+      dirty: { isDirty: true, reasons: this.#appendDirtyReason(s.dirty.reasons, 'mapping_upsert') },
     }));
   }
 
@@ -271,56 +287,114 @@ export class StoreService {
     }));
   }
 
-  deleteOrder(orderId: string): void {
+  applyInboundImport(payload: InboundImportApplyPayload): void {
+    this.#state.update((current) => {
+      const loadedAt = current.meta.loadedAt ?? new Date().toISOString();
+      const hasRecords = payload.records.length > 0;
+
+      return {
+        ...current,
+        meta: { ...current.meta, loadedAt },
+        inbounds: [...current.inbounds, ...payload.records],
+        lastImportResult: payload.result,
+        dirty: {
+          isDirty: current.dirty.isDirty || hasRecords,
+          reasons: hasRecords
+            ? this.#appendDirtyReason(current.dirty.reasons, 'import_inbounds')
+            : current.dirty.reasons,
+        },
+      };
+    });
+  }
+
+  applyOutboundImport(payload: OutboundImportApplyPayload): void {
+    this.#state.update((current) => {
+      const loadedAt = current.meta.loadedAt ?? new Date().toISOString();
+      const hasRecords = payload.records.length > 0;
+
+      return {
+        ...current,
+        meta: { ...current.meta, loadedAt },
+        outbounds: [...current.outbounds, ...payload.records],
+        lastImportResult: payload.result,
+        dirty: {
+          isDirty: current.dirty.isDirty || hasRecords,
+          reasons: hasRecords
+            ? this.#appendDirtyReason(current.dirty.reasons, 'import_outbounds')
+            : current.dirty.reasons,
+        },
+      };
+    });
+  }
+
+  removeInboundBatch(importedAt: string): void {
     this.#state.update((s) => ({
       ...s,
-      orders: s.orders.filter((order) => order.id !== orderId),
+      inbounds: s.inbounds.filter((record) => record.importedAt !== importedAt),
       dirty: {
         isDirty: true,
-        reasons: this.#appendDirtyReason(s.dirty.reasons, 'order_delete'),
+        reasons: this.#appendDirtyReason(s.dirty.reasons, 'inbound_batch_remove'),
       },
     }));
   }
 
-  applyOrderImport(payload: OrderImportApplyPayload): void {
-    this.#state.update((current) => {
-      const loadedAt = current.meta.loadedAt ?? new Date().toISOString();
-      const nextDirtyReasons =
-        payload.orders.length > 0
-          ? this.#appendDirtyReason(current.dirty.reasons, 'import_orders')
-          : current.dirty.reasons;
-
-      return {
-        ...current,
-        meta: { ...current.meta, loadedAt },
-        orders: [...current.orders, ...payload.orders],
-        lastImportResult: payload.result,
-        dirty: {
-          isDirty: current.dirty.isDirty || payload.orders.length > 0,
-          reasons: nextDirtyReasons,
-        },
-      };
-    });
+  removeOutboundBatch(importedAt: string): void {
+    this.#state.update((s) => ({
+      ...s,
+      outbounds: s.outbounds.filter((record) => record.importedAt !== importedAt),
+      dirty: {
+        isDirty: true,
+        reasons: this.#appendDirtyReason(s.dirty.reasons, 'outbound_batch_remove'),
+      },
+    }));
   }
 
-  applyInbound(records: InboundRecord[]): void {
-    this.#state.update((current) => {
-      const loadedAt = current.meta.loadedAt ?? new Date().toISOString();
-      const nextDirtyReasons =
-        records.length > 0
-          ? this.#appendDirtyReason(current.dirty.reasons, 'inbound_add')
-          : current.dirty.reasons;
+  #batchSummaries(records: Array<{ importedAt: string; quantity: number }>): ImportBatchSummary[] {
+    const map = new Map<string, ImportBatchSummary>();
 
-      return {
-        ...current,
-        meta: { ...current.meta, loadedAt },
-        inbounds: [...current.inbounds, ...records],
-        dirty: {
-          isDirty: current.dirty.isDirty || records.length > 0,
-          reasons: nextDirtyReasons,
-        },
+    for (const record of records) {
+      const current = map.get(record.importedAt) ?? {
+        importedAt: record.importedAt,
+        count: 0,
+        quantity: 0,
       };
-    });
+      current.count += 1;
+      current.quantity += record.quantity;
+      map.set(record.importedAt, current);
+    }
+
+    return [...map.values()].sort((a, b) => b.importedAt.localeCompare(a.importedAt));
+  }
+
+  #resolveOutboundTargets(
+    record: OutboundRecord,
+    inboundKeys: Set<string>,
+    mappings: ProductAliasMapping[],
+  ): MappingItem[] {
+    const sourceKey = this.#recordKey(record.productName, record.productStyle);
+    const mapping = mappings.find(
+      (item) => this.#recordKey(item.sourceProductName, item.sourceProductStyle) === sourceKey,
+    );
+
+    if (mapping && mapping.items.length > 0) {
+      return mapping.items.map((item) => ({ ...item }));
+    }
+
+    if (record.productStyle.trim().length === 0) {
+      return [];
+    }
+
+    if (inboundKeys.has(sourceKey)) {
+      return [
+        {
+          productName: record.productName,
+          productStyle: record.productStyle,
+          quantity: 1,
+        },
+      ];
+    }
+
+    return [];
   }
 
   #appendDirtyReason(reasons: string[], reason: string): string[] {
@@ -331,23 +405,7 @@ export class StoreService {
     return [...reasons, reason];
   }
 
-  #resolveMappedItems(
-    order: Order,
-    platformProductName: string,
-    storedItems: MappingItem[],
-    mappings: PlatformProductMapping[],
-  ): MappingItem[] {
-    if (order.platform === PlatFormTypes.Manual) {
-      return storedItems.map((item) => ({ ...item }));
-    }
-
-    const normalizedName = platformProductName.trim().toLowerCase();
-    const mapping = mappings.find(
-      (item) =>
-        item.platform === order.platform &&
-        item.platformProductName.trim().toLowerCase() === normalizedName,
-    );
-
-    return mapping?.items.map((item) => ({ ...item })) ?? [];
+  #recordKey(productName: string, productStyle: string): string {
+    return `${productName.trim()}\u0000${productStyle.trim()}`;
   }
 }

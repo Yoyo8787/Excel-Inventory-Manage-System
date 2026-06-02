@@ -1,14 +1,15 @@
-import type { MappingId, PlatformType, ProductId } from './system.model';
+import type { MappingId } from './system.model';
 
 export interface MappingItem {
-  productId: ProductId;
+  productName: string;
+  productStyle: string;
   quantity: number;
 }
 
-export interface PlatformProductMapping {
+export interface ProductAliasMapping {
   id: MappingId;
-  platform: PlatformType;
-  platformProductName: string;
+  sourceProductName: string;
+  sourceProductStyle: string;
   items: MappingItem[];
   updatedAt: string;
 }

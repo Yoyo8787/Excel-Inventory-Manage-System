@@ -4,57 +4,80 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { nanoid } from 'nanoid';
 
-import { StoreService } from '../../core/services/store.service';
-import { LayoutService } from '../../core/services/layout.service';
-import type { InboundRecord, Product } from '../../core/models';
-import { ProductAutocompleteComponent } from '../../components/product-autocomplete/product-autocomplete';
+import { Dropzone } from '../../components/dropzone/dropzone';
+import { InboundRecord } from '../../core/models';
+import { LayoutService, RecordImportService, StoreService } from '../../core/services';
+import { toErrorMessage } from '../../core/utils';
 
 interface InboundLine {
-  productId: string | null;
+  productName: string;
+  productStyle: string;
   qty: number;
 }
 
-type InboundLineKey = 'productId' | 'qty';
+type InboundLineKey = 'productName' | 'productStyle' | 'qty';
 
 @Component({
   selector: 'page-import',
-  imports: [FormsModule, MatFormFieldModule, MatInputModule, ProductAutocompleteComponent],
+  imports: [FormsModule, MatFormFieldModule, MatInputModule, Dropzone],
   templateUrl: './import.page.html',
 })
 export class ImportPage {
   readonly #store = inject(StoreService);
   readonly #layout = inject(LayoutService);
+  readonly #recordImport = inject(RecordImportService);
 
   readonly state = this.#store.state;
-  readonly date = signal(new Date().toISOString().slice(0, 10));
-  readonly note = signal('');
+  readonly busy = signal(false);
+  readonly confirmImportedAt = signal<string | null>(null);
   readonly lines = signal<InboundLine[]>([this.#blankLine()]);
 
-  readonly products = computed(() =>
-    [...this.state().products].sort((a, b) => a.name.localeCompare(b.name, 'zh-Hant'))
+  readonly productNameOptions = computed(() =>
+    [...new Set(this.#store.standardProductKeys().map((item) => item.productName))].sort((a, b) =>
+      a.localeCompare(b, 'zh-Hant'),
+    ),
+  );
+  readonly productStyleOptions = computed(() =>
+    [...new Set(this.#store.standardProductKeys().map((item) => item.productStyle))].sort((a, b) =>
+      a.localeCompare(b, 'zh-Hant'),
+    ),
   );
   readonly activeLineCount = computed(() => this.lines().filter(l => !this.#isBlankLine(l)).length);
   readonly totalQty = computed(() => this.lines().reduce((s, l) => s + this.#positiveQty(l.qty), 0));
+  readonly importSummary = computed(() => {
+    const result = this.state().lastImportResult;
+    if (result?.type !== 'inbound') {
+      return {
+        importedCount: 0,
+        errorCount: 0,
+        errors: [],
+      };
+    }
+
+    return {
+      importedCount: result.importedCount,
+      errorCount: result.errorCount,
+      errors: result.errors,
+    };
+  });
 
   readonly inboundHistory = computed(() =>
     [...this.state().inbounds]
-      .sort((a, b) =>
-        b.inboundDate.localeCompare(a.inboundDate) || b.createdAt.localeCompare(a.createdAt)
-      )
-      .slice(0, 20)
+      .sort((a, b) => b.importedAt.localeCompare(a.importedAt))
+      .slice(0, 30)
   );
 
-  getProductName(productId: string): string {
-    return this.state().products.find(p => p.id === productId)?.name ?? productId;
-  }
+  readonly batches = this.#store.inboundBatches;
 
-  updateLine(i: number, key: InboundLineKey, v: string | number | null): void {
+  updateLine(i: number, key: InboundLineKey, v: string | number): void {
     this.lines.update(ls => ls.map((l, idx) => {
       if (idx !== i) return l;
 
-      return key === 'qty'
-        ? { ...l, qty: this.#toQuantity(v) }
-        : { ...l, productId: typeof v === 'string' && v.length > 0 ? v : null };
+      if (key === 'qty') {
+        return { ...l, qty: this.#toQuantity(v) };
+      }
+
+      return { ...l, [key]: String(v) };
     }));
   }
 
@@ -73,51 +96,66 @@ export class ImportPage {
       return;
     }
 
-    const now = new Date().toISOString();
-    const note = this.note().trim() || undefined;
-    const records = this.#toInboundRecords(now, note);
+    const importedAt = new Date().toISOString();
+    const records = this.#toInboundRecords(importedAt);
 
-    this.#store.applyInbound(records);
+    this.#store.applyInboundImport({
+      records,
+      result: { type: 'inbound', importedCount: records.length, errorCount: 0, errors: [] },
+    });
     this.#layout.showMessage(`入庫完成：${records.length} 項，共 ${this.totalQty().toLocaleString()} 件`);
     this.lines.set([this.#blankLine()]);
-    this.note.set('');
+  }
+
+  async handleInboundWorkbookSelected(file: File): Promise<void> {
+    this.busy.set(true);
+    try {
+      const output = await this.#recordImport.importInboundFromFile(file);
+      this.#store.applyInboundImport(output);
+      const result = output.result;
+      if (result.importedCount === 0 && result.errorCount > 0) {
+        this.#layout.showError(result.errors[0]?.reason ?? '匯入進貨失敗');
+        return;
+      }
+      this.#layout.showMessage(`進貨匯入完成：成功 ${result.importedCount}、錯誤 ${result.errorCount}`);
+    } catch (error) {
+      this.#layout.showError(toErrorMessage(error, '匯入進貨失敗'));
+    } finally {
+      this.busy.set(false);
+    }
+  }
+
+  requestRemoveBatch(importedAt: string): void {
+    this.confirmImportedAt.set(importedAt);
+  }
+
+  cancelRemoveBatch(): void {
+    this.confirmImportedAt.set(null);
+  }
+
+  removeBatch(importedAt: string): void {
+    const count = this.state().inbounds.filter((record) => record.importedAt === importedAt).length;
+    this.confirmImportedAt.set(null);
+    this.#store.removeInboundBatch(importedAt);
+    this.#layout.showMessage(`已撤回進貨批次：${count} 筆`);
   }
 
   #blankLine(): InboundLine {
-    return { productId: null, qty: 0 };
-  }
-
-  #findProduct(line: InboundLine): Product | undefined {
-    const products = this.state().products;
-
-    if (line.productId) {
-      return products.find(p => p.id === line.productId);
-    }
-
-    return undefined;
+    return { productName: '', productStyle: '', qty: 0 };
   }
 
   #formError(): string | null {
-    if (this.products().length === 0) {
-      return '請先在商品管理新增商品，再建立進貨紀錄';
-    }
-
-    if (!this.#isValidDate(this.date())) {
-      return '請輸入有效的進貨日期';
-    }
-
     if (this.activeLineCount() === 0) {
       return '請至少輸入一筆商品項次';
     }
 
-    return this.#firstLineError();
-  }
-
-  #firstLineError(): string | null {
     for (const [index, line] of this.lines().entries()) {
       if (this.#isBlankLine(line)) continue;
-      if (!this.#findProduct(line)) {
-        return `第 ${index + 1} 項請選擇既有商品`;
+      if (line.productName.trim().length === 0) {
+        return `第 ${index + 1} 項商品名稱不可為空`;
+      }
+      if (line.productStyle.trim().length === 0) {
+        return `第 ${index + 1} 項商品款式不可為空`;
       }
       if (this.#positiveQty(line.qty) <= 0) {
         return `第 ${index + 1} 項數量需大於 0`;
@@ -127,41 +165,30 @@ export class ImportPage {
     return null;
   }
 
-  #toInboundRecords(createdAt: string, note: string | undefined): InboundRecord[] {
+  #toInboundRecords(importedAt: string): InboundRecord[] {
     return this.lines()
       .filter(line => !this.#isBlankLine(line))
-      .map(line => {
-        const product = this.#findProduct(line);
-        if (!product) {
-          throw new Error('Import line has no matching product');
-        }
-
-        return {
-          id: nanoid(),
-          productId: product.id,
-          quantity: this.#positiveQty(line.qty),
-          inboundDate: this.date(),
-          note,
-          createdAt,
-        };
-      });
+      .map(line => ({
+        id: nanoid(12),
+        productName: line.productName.trim(),
+        productStyle: line.productStyle.trim(),
+        quantity: this.#positiveQty(line.qty),
+        importedAt,
+      }));
   }
 
   #isBlankLine(line: InboundLine): boolean {
-    return !line.productId &&
+    return line.productName.trim().length === 0 &&
+      line.productStyle.trim().length === 0 &&
       this.#positiveQty(line.qty) === 0;
   }
 
-  #toQuantity(value: string | number | null): number {
+  #toQuantity(value: string | number): number {
     const quantity = typeof value === 'number' ? value : Number(value);
     return Number.isFinite(quantity) ? Math.max(0, Math.floor(quantity)) : 0;
   }
 
   #positiveQty(value: number): number {
     return Number.isFinite(value) && value > 0 ? Math.floor(value) : 0;
-  }
-
-  #isValidDate(value: string): boolean {
-    return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(value).getTime());
   }
 }
