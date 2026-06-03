@@ -1,0 +1,45 @@
+<div class="file-card" style="margin-top: 24px; border-top: 3px double var(--danger)">
+  <div
+    class="file-card-head"
+    style="background: linear-gradient(180deg, rgba(224, 161, 84, 0.07), var(--surface))"
+  >
+    <div>
+      <div class="eyebrow" style="color: var(--danger)">ALERT · 庫存警示</div>
+      <div class="file-card-title" style="font-size: 20px">
+        低庫存品項
+        <span class="mono" style="font-size: 13px; color: var(--danger); margin-left: 8px">
+          {{ products().length }} items
+        </span>
+      </div>
+    </div>
+    <button class="btn btn-sm btn-primary" (click)="gotoRequested.emit()">
+      <span class="mat-icon sm">link</span>前往查看
+    </button>
+  </div>
+  <div class="file-card-body" style="padding: 0">
+    <div class="dashboard-table-scroll dashboard-table-scroll-sm">
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th class="row-num">列</th>
+            <th>商品名稱</th>
+            <th>商品款式</th>
+            <th class="num" style="width: 120px">目前庫存</th>
+            <th class="num" style="width: 120px">安全庫存量</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (p of products(); track p.key; let i = $index) {
+            <tr>
+              <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
+              <td>{{ p.productName }}</td>
+              <td>{{ p.productStyle }}</td>
+              <td class="num">{{ p.onHand }}</td>
+              <td class="num">{{ threshold() }}</td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

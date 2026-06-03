@@ -1,0 +1,35 @@
+<div class="file-card" style="margin-top: 24px">
+  <div class="file-card-head">
+    <div>
+      <div class="eyebrow">HISTORY · 近期進貨</div>
+      <div class="file-card-title">進貨紀錄</div>
+    </div>
+    <span class="doc-no">{{ totalCount() }} 筆 · {{ batchCount() }} 批</span>
+  </div>
+
+  @if (sections().length === 0) {
+    <div class="file-card-body" style="text-align: center; padding: 48px 20px">
+      <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px"
+        >inventory_2</span
+      >
+      <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
+        — 尚無進貨紀錄 —
+      </div>
+      <div class="margin-note" style="margin-top: 8px">
+        上傳進貨 Excel 或使用手動補登，即可建立進貨紀錄
+      </div>
+    </div>
+  } @else {
+    <div class="file-card-body inbound-batch-list">
+      @for (section of sections(); track section.importedAt) {
+        <inbound-batch-section
+          [section]="section"
+          [confirmImportedAt]="confirmImportedAt()"
+          (removeRequested)="removeRequested.emit($event)"
+          (removeCanceled)="removeCanceled.emit()"
+          (removeConfirmed)="removeConfirmed.emit($event)"
+        />
+      }
+    </div>
+  }
+</div>

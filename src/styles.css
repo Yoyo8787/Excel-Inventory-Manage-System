@@ -424,6 +424,15 @@ span.mat-icon.lg {
   background: var(--mint-700);
   border-color: var(--mint-700);
 }
+.btn-danger {
+  background: var(--danger);
+  color: #fff;
+  border-color: var(--danger);
+}
+.btn-danger:hover {
+  background: #a84444;
+  border-color: #a84444;
+}
 .btn-ghost {
   background: transparent;
   border: 1px solid transparent;
@@ -712,6 +721,151 @@ span.mat-icon.lg {
 .dropzone.drag-over {
   background: var(--mint-50);
   border-color: var(--mint-400);
+}
+
+/* ── Inbound page ─────────────────────────────────────────── */
+inbound-upload-card,
+inbound-manual-card,
+inbound-history-card,
+inbound-batch-section,
+outbound-upload-card,
+outbound-result-card,
+outbound-history-card,
+outbound-batch-section {
+  display: block;
+}
+inbound-upload-card {
+  grid-column: span 2;
+}
+outbound-result-card {
+  grid-column: span 2;
+}
+.inbound-entry-grid,
+.outbound-entry-grid {
+  align-items: stretch;
+}
+.inbound-upload-card,
+.inbound-manual-card,
+.outbound-upload-card,
+.outbound-result-card {
+  height: 100%;
+}
+.inbound-upload-body,
+.outbound-upload-body,
+.outbound-result-body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.inbound-upload-card .dropzone,
+.outbound-upload-card .dropzone {
+  min-height: 112px;
+  padding: 18px;
+}
+.inbound-manual-card {
+  display: flex;
+  flex-direction: column;
+}
+.inbound-manual-body {
+  flex: 1;
+  max-height: 360px;
+  overflow-y: auto;
+}
+.ledger-table.inbound-manual-table {
+  font-size: 12px;
+}
+.ledger-table.inbound-manual-table thead th {
+  padding: 8px 10px;
+}
+.ledger-table.inbound-manual-table tbody td {
+  padding: 8px 10px;
+}
+.inbound-manual-table .inline-input + .inline-input {
+  margin-top: 6px;
+}
+.inbound-batch-list,
+.outbound-batch-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.inbound-batch-section,
+.outbound-batch-section {
+  border: 1px solid var(--hairline);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+  background: var(--surface);
+}
+.inbound-batch-head,
+.outbound-batch-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border-bottom: 1px solid var(--hairline);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+.inbound-batch-head:hover,
+.inbound-batch-head:focus-visible,
+.outbound-batch-head:hover,
+.outbound-batch-head:focus-visible {
+  background: var(--mint-50);
+  outline: none;
+}
+.inbound-batch-toggle,
+.outbound-batch-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 4px;
+  color: var(--ink-muted);
+}
+.inbound-batch-title,
+.outbound-batch-title {
+  flex: 1;
+  min-width: 180px;
+}
+.inbound-batch-actions,
+.outbound-batch-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* ── Dashboard page ───────────────────────────────────────── */
+dashboard-stat-card,
+low-stock-card,
+unmatched-outbounds-card,
+recent-outbounds-card,
+inventory-summary-card,
+inbound-summary-card,
+inventory-snapshot-card {
+  display: block;
+}
+.dashboard-table-scroll {
+  position: relative;
+  overflow: auto;
+  scrollbar-gutter: stable;
+}
+.dashboard-table-scroll-sm {
+  max-height: 260px;
+}
+.dashboard-table-scroll-md {
+  max-height: 360px;
+}
+.dashboard-table-scroll-lg {
+  max-height: 460px;
+}
+.dashboard-table-scroll .ledger-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
 }
 
 /* ── Platform Picker ──────────────────────────────────────── */

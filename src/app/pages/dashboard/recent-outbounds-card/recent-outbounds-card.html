@@ -1,0 +1,64 @@
+<div class="file-card" style="margin-top: 24px">
+  <div class="file-card-head">
+    <div>
+      <div class="eyebrow">LOG · 最近匯入</div>
+      <div class="file-card-title">出貨紀錄</div>
+    </div>
+    <div style="display: flex; gap: 8px; align-items: center">
+      <span class="tag">最近 8 筆</span>
+      <button class="btn btn-sm" (click)="gotoRequested.emit()">
+        <span class="mat-icon sm">open_in_new</span>查看全部
+      </button>
+    </div>
+  </div>
+
+  @if (outbounds().length === 0) {
+    <div class="file-card-body" style="text-align: center; padding: 48px 20px">
+      <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px"
+        >inbox</span
+      >
+      <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
+        — 尚無出貨資料 —
+      </div>
+      <div class="margin-note" style="margin-top: 8px">請至「出貨匯入」上傳 Excel 檔案</div>
+      <button
+        class="btn btn-primary btn-sm"
+        style="margin-top: 16px"
+        (click)="gotoRequested.emit()"
+      >
+        <span class="mat-icon sm">upload</span>前往匯入
+      </button>
+    </div>
+  } @else {
+    <div class="file-card-body" style="padding: 0">
+      <div class="dashboard-table-scroll dashboard-table-scroll-md">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th class="row-num">No.</th>
+              <th>商品名稱</th>
+              <th>商品款式</th>
+              <th style="width: 120px">收件人</th>
+              <th class="num" style="width: 80px">數量</th>
+              <th style="width: 150px">匯入時間</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (o of outbounds(); track o.id; let i = $index) {
+              <tr>
+                <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
+                <td>{{ o.productName }}</td>
+                <td>{{ o.productStyle || '空白' }}</td>
+                <td>{{ o.recipientName }}</td>
+                <td class="num mono">{{ o.quantity }}</td>
+                <td class="mono" style="font-size: 11px; color: var(--ink-muted)">
+                  {{ formatImportedAt(o.importedAt) }}
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+  }
+</div>

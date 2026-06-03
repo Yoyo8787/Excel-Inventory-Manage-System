@@ -21,7 +21,7 @@ export const createEmptyAppState = (datasetName = 'Untitled dataset'): AppState 
     lastSavedAt: null,
   },
   settings: {
-    defaultLowStockThreshold: 20,
+    defaultLowStockThreshold: 2,
   },
   dirty: {
     isDirty: false,

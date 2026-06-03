@@ -1,0 +1,33 @@
+<div class="file-card" style="margin-top: 24px">
+  <div class="file-card-head">
+    <div>
+      <div class="eyebrow">LEDGER · 全部出貨</div>
+      <div class="file-card-title">出貨紀錄</div>
+    </div>
+    <span class="doc-no">{{ totalCount() }} 筆 · {{ batchCount() }} 批</span>
+  </div>
+
+  @if (sections().length === 0) {
+    <div class="file-card-body" style="text-align: center; padding: 48px 20px">
+      <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px"
+        >local_shipping</span
+      >
+      <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
+        — 尚無出貨紀錄 —
+      </div>
+      <div class="margin-note" style="margin-top: 8px">上傳出貨 Excel 即可建立出貨紀錄</div>
+    </div>
+  } @else {
+    <div class="file-card-body outbound-batch-list">
+      @for (section of sections(); track section.importedAt) {
+        <outbound-batch-section
+          [section]="section"
+          [confirmImportedAt]="confirmImportedAt()"
+          (removeRequested)="removeRequested.emit($event)"
+          (removeCanceled)="removeCanceled.emit()"
+          (removeConfirmed)="removeConfirmed.emit($event)"
+        />
+      }
+    </div>
+  }
+</div>

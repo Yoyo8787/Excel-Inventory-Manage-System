@@ -1,0 +1,101 @@
+<div class="file-card inbound-manual-card">
+  <div class="file-card-head">
+    <div>
+      <div class="eyebrow">MANUAL · 補登</div>
+      <div class="file-card-title">手動進貨</div>
+    </div>
+    <span class="tag">{{ activeLineCount() }} 項</span>
+  </div>
+  <div class="file-card-body inbound-manual-body">
+    <datalist id="inbound-product-name-options">
+      @for (name of productNameOptions(); track name) {
+        <option [value]="name"></option>
+      }
+    </datalist>
+    <datalist id="inbound-product-style-options">
+      @for (style of productStyleOptions(); track style) {
+        <option [value]="style"></option>
+      }
+    </datalist>
+
+    <table class="ledger-table inbound-manual-table">
+      <thead>
+        <tr>
+          <th class="row-num">#</th>
+          <th>商品</th>
+          <th class="num" style="width: 72px">數量</th>
+          <th style="width: 36px"></th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (line of lines(); track $index; let i = $index) {
+          <tr>
+            <td class="row-num">{{ (i + 1).toString().padStart(2, '0') }}</td>
+            <td>
+              <input
+                class="inline-input"
+                list="inbound-product-name-options"
+                placeholder="商品名稱"
+                [value]="line.productName"
+                (input)="
+                  lineUpdated.emit({
+                    index: i,
+                    key: 'productName',
+                    value: $any($event.target).value,
+                  })
+                "
+              />
+              <input
+                class="inline-input"
+                list="inbound-product-style-options"
+                placeholder="商品款式"
+                [value]="line.productStyle"
+                (input)="
+                  lineUpdated.emit({
+                    index: i,
+                    key: 'productStyle',
+                    value: $any($event.target).value,
+                  })
+                "
+              />
+            </td>
+            <td class="num">
+              <input
+                class="inline-input mono"
+                type="number"
+                min="0"
+                step="1"
+                style="text-align: right"
+                [value]="line.qty"
+                (input)="
+                  lineUpdated.emit({ index: i, key: 'qty', value: +$any($event.target).value || 0 })
+                "
+              />
+            </td>
+            <td>
+              @if (lines().length > 1) {
+                <button class="btn btn-sm btn-ghost btn-icon" (click)="lineRemoved.emit(i)">
+                  <span class="mat-icon sm">close</span>
+                </button>
+              }
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+
+    <div class="summary-row" style="margin-top: 10px">
+      <span>合計數量</span>
+      <span class="mono">{{ totalQty().toLocaleString() }} 件</span>
+    </div>
+
+    <div style="display: flex; gap: 8px; margin-top: 12px">
+      <button class="btn btn-ghost btn-sm" (click)="lineAdded.emit()">
+        <span class="mat-icon sm">add</span>新增項次
+      </button>
+      <button class="btn btn-primary btn-sm" style="margin-left: auto" (click)="submitted.emit()">
+        <span class="mat-icon sm">verified</span>送出入庫
+      </button>
+    </div>
+  </div>
+</div>

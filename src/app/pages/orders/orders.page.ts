@@ -1,17 +1,18 @@
 import { Component, computed, inject, signal } from '@angular/core';
 
-import { Dropzone } from '../../components/dropzone/dropzone';
-import { OutboundTable } from '../../components/order-table/order-table';
-
 import type { OutboundRecord } from '../../core/models';
 import { RecordImportService } from '../../core/services/record-import.service';
 import { StoreService } from '../../core/services/store.service';
 import { LayoutService } from '../../core/services';
 import { toErrorMessage } from '../../core/utils';
+import { OutboundHistoryCard } from './outbound-history-card/outbound-history-card';
+import { OutboundResultCard } from './outbound-result-card/outbound-result-card';
+import { OutboundUploadCard } from './outbound-upload-card/outbound-upload-card';
+import type { OutboundBatchSection } from './orders.types';
 
 @Component({
   selector: 'page-orders',
-  imports: [Dropzone, OutboundTable],
+  imports: [OutboundUploadCard, OutboundResultCard, OutboundHistoryCard],
   templateUrl: './orders.page.html',
 })
 export class OrdersPage {
@@ -21,9 +22,7 @@ export class OrdersPage {
 
   readonly state = this.#storeService.state;
   readonly busy = signal(false);
-  readonly records = computed(() =>
-    [...this.state().outbounds].sort((a, b) => b.importedAt.localeCompare(a.importedAt)),
-  );
+  readonly confirmImportedAt = signal<string | null>(null);
   readonly batches = this.#storeService.outboundBatches;
   readonly importSummary = computed(() => {
     const result = this.state().lastImportResult;
@@ -40,6 +39,20 @@ export class OrdersPage {
       errorCount: result.errorCount,
       errors: result.errors,
     };
+  });
+  readonly outboundBatchSections = computed<OutboundBatchSection[]>(() => {
+    const recordsByImportedAt = new Map<string, OutboundRecord[]>();
+
+    for (const record of this.state().outbounds) {
+      const records = recordsByImportedAt.get(record.importedAt) ?? [];
+      records.push(record);
+      recordsByImportedAt.set(record.importedAt, records);
+    }
+
+    return this.batches().map((batch) => ({
+      ...batch,
+      records: recordsByImportedAt.get(batch.importedAt) ?? [],
+    }));
   });
 
   async handleOutboundWorkbookSelected(file: File): Promise<void> {
@@ -62,13 +75,20 @@ export class OrdersPage {
     }
   }
 
-  removeBatch(importedAt: string): void {
-    const count = this.state().outbounds.filter((record) => record.importedAt === importedAt).length;
-    this.#storeService.removeOutboundBatch(importedAt);
-    this.#layoutService.showMessage(`已撤回出貨批次：${count} 筆`);
+  requestRemoveBatch(importedAt: string): void {
+    this.confirmImportedAt.set(importedAt);
   }
 
-  trackRecord(_index: number, record: OutboundRecord): string {
-    return record.id;
+  cancelRemoveBatch(): void {
+    this.confirmImportedAt.set(null);
+  }
+
+  removeBatch(importedAt: string): void {
+    const count = this.state().outbounds.filter(
+      (record) => record.importedAt === importedAt,
+    ).length;
+    this.confirmImportedAt.set(null);
+    this.#storeService.removeOutboundBatch(importedAt);
+    this.#layoutService.showMessage(`已撤回出貨批次：${count} 筆`);
   }
 }

@@ -1,0 +1,59 @@
+<div class="file-card" style="margin-top: 24px">
+  <div class="file-card-head">
+    <div>
+      <div class="eyebrow">INVENTORY · Snapshot</div>
+      <div class="file-card-title">庫存快照</div>
+    </div>
+    <span class="tag">{{ items().length }} 項</span>
+  </div>
+
+  @if (items().length === 0) {
+    <div class="file-card-body" style="text-align: center; padding: 48px 20px">
+      <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px"
+        >inventory_2</span
+      >
+      <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
+        — 尚無商品資料 —
+      </div>
+    </div>
+  } @else {
+    <div class="dashboard-table-scroll dashboard-table-scroll-lg">
+      <table class="ledger-table">
+        <thead>
+          <tr>
+            <th class="row-num">No.</th>
+            <th>商品名稱</th>
+            <th>商品款式</th>
+            <th class="num" style="width: 100px">進貨</th>
+            <th class="num" style="width: 100px">出貨扣除</th>
+            <th class="num" style="width: 100px">目前庫存</th>
+            <th class="num" style="width: 100px">安全庫存</th>
+            <th style="width: 90px">低庫存</th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (item of items(); track item.key; let i = $index) {
+            <tr>
+              <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
+              <td style="font-weight: 600">{{ item.productName }}</td>
+              <td>{{ item.productStyle }}</td>
+              <td class="num mono">{{ item.inboundTotal.toLocaleString() }}</td>
+              <td class="num mono">{{ item.deductedTotal.toLocaleString() }}</td>
+              <td class="num mono">{{ item.onHand.toLocaleString() }}</td>
+              <td class="num mono">{{ threshold().toLocaleString() }}</td>
+              <td>
+                <span
+                  class="tag dot"
+                  [class.red]="item.isLowStock"
+                  [class.green]="!item.isLowStock"
+                >
+                  {{ item.isLowStock ? '是' : '否' }}
+                </span>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+  }
+</div>

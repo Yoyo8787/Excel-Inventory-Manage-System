@@ -1,0 +1,76 @@
+<section class="outbound-batch-section">
+  <div
+    class="outbound-batch-head"
+    role="button"
+    tabindex="0"
+    (click)="toggleExpanded()"
+    (keydown.enter)="toggleExpanded()"
+    (keydown.space)="toggleExpanded()"
+  >
+    <span class="outbound-batch-toggle" aria-hidden="true">
+      <span class="mat-icon sm">{{ expanded() ? 'expand_less' : 'expand_more' }}</span>
+    </span>
+
+    <div class="outbound-batch-title">
+      <div class="eyebrow">匯入時間</div>
+      <div class="mono" style="font-size: 13px; color: var(--ink)">
+        {{ section().importedAt.slice(0, 16).replace('T', ' ') }}
+      </div>
+    </div>
+
+    <div
+      class="outbound-batch-actions"
+      (click)="$event.stopPropagation()"
+      (keydown.enter)="$event.stopPropagation()"
+      (keydown.space)="$event.stopPropagation()"
+    >
+      <span class="tag">{{ section().count }} 筆</span>
+      <span class="tag green">{{ section().quantity.toLocaleString() }} 件</span>
+      @if (confirmImportedAt() === section().importedAt) {
+        <button class="btn btn-sm btn-danger" (click)="removeConfirmed.emit(section().importedAt)">
+          確認撤回
+        </button>
+        <button class="btn btn-sm" (click)="removeCanceled.emit()">取消</button>
+      } @else {
+        <button
+          class="btn btn-danger btn-sm"
+          title="撤回此批出貨"
+          (click)="removeRequested.emit(section().importedAt)"
+        >
+          <span class="mat-icon sm">undo</span>撤回此批
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (expanded()) {
+    <table class="ledger-table">
+      <thead>
+        <tr>
+          <th class="row-num">№</th>
+          <th>收件人</th>
+          <th>商品名稱</th>
+          <th>商品款式</th>
+          <th class="num" style="width: 90px">數量</th>
+        </tr>
+      </thead>
+      <tbody>
+        @for (record of section().records; track record.id; let i = $index) {
+          <tr>
+            <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
+            <td style="font-weight: 600">{{ record.recipientName }}</td>
+            <td>{{ record.productName }}</td>
+            <td>
+              @if (record.productStyle) {
+                {{ record.productStyle }}
+              } @else {
+                <span style="color: var(--ink-faint)">（空白）</span>
+              }
+            </td>
+            <td class="num mono">{{ record.quantity }}</td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  }
+</section>

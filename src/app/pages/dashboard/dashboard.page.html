@@ -15,264 +15,39 @@
 
   <div class="grid-4 gap-6" style="margin-top: 22px">
     @for (s of stats(); track s.label) {
-      <div class="file-card stat-card">
-        <div class="cls-stripe" style="height: 3px">
-          <span [class]="s.tone === 'red' ? 'red' : 'ink'"></span>
-          <span [class]="s.tone === 'ochre' ? 'ochre' : 'ink'"></span>
-          <span [class]="s.tone === 'green' ? 'green' : 'ink'"></span>
-          <span [class]="s.tone === 'blue' ? 'blue' : 'ink'"></span>
-        </div>
-        <div style="padding: 16px 18px">
-          <div class="eyebrow">{{ s.label }}</div>
-          <div class="display-title" style="font-size: 34px; line-height: 1.1; margin-top: 6px">
-            {{ s.valueStr }}
-          </div>
-          <div style="margin-top: 14px">
-            <div class="mono" style="font-size: 11px; color: var(--ink-muted)">{{ s.sub }}</div>
-          </div>
-        </div>
-      </div>
+      <dashboard-stat-card [stat]="s" />
     }
   </div>
 
   @if (lowStockProducts().length > 0) {
-    <div class="file-card" style="margin-top: 24px; border-top: 3px double var(--danger)">
-      <div class="file-card-head" style="background: linear-gradient(180deg, rgba(224, 161, 84, 0.07), var(--surface))">
-        <div>
-          <div class="eyebrow" style="color: var(--danger)">ALERT · 庫存警示</div>
-          <div class="file-card-title" style="font-size: 20px">
-            低庫存品項
-            <span class="mono" style="font-size: 13px; color: var(--danger); margin-left: 8px">
-              {{ lowStockProducts().length }} items
-            </span>
-          </div>
-        </div>
-        <button class="btn btn-sm btn-primary" (click)="goto.emit('products')">
-          <span class="mat-icon sm">link</span>前往查看
-        </button>
-      </div>
-      <div class="file-card-body" style="padding: 0">
-        <table class="ledger-table">
-          <thead>
-            <tr>
-              <th class="row-num">列</th>
-              <th>商品名稱</th>
-              <th>商品款式</th>
-              <th class="num" style="width: 120px">目前庫存</th>
-              <th class="num" style="width: 120px">安全庫存量</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (p of lowStockProducts(); track p.key; let i = $index) {
-              <tr>
-                <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-                <td>{{ p.productName }}</td>
-                <td>{{ p.productStyle }}</td>
-                <td class="num">{{ p.onHand }}</td>
-                <td class="num">{{ state().settings.defaultLowStockThreshold }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <low-stock-card
+      [products]="lowStockProducts()"
+      [threshold]="state().settings.defaultLowStockThreshold"
+      (gotoRequested)="goto.emit('products')"
+    />
   }
 
   @if (unmatchedOutbounds().length > 0) {
-    <div class="file-card" style="margin-top: 24px; border-top: 3px double var(--danger)">
-      <div class="file-card-head" style="background: linear-gradient(180deg, rgba(184, 80, 80, 0.07), var(--surface))">
-        <div>
-          <div class="eyebrow" style="color: var(--danger)">ALERT · 配對警示</div>
-          <div class="file-card-title" style="font-size: 20px">
-            未配對出貨
-            <span class="mono" style="font-size: 13px; color: var(--danger); margin-left: 8px">
-              {{ unmatchedOutbounds().length }} rows
-            </span>
-          </div>
-        </div>
-        <button class="btn btn-sm btn-primary" (click)="goto.emit('products')">
-          <span class="mat-icon sm">link</span>前往配對
-        </button>
-      </div>
-      <div class="file-card-body" style="padding: 0">
-        <table class="ledger-table">
-          <thead>
-            <tr>
-              <th class="row-num">列</th>
-              <th>商品名稱</th>
-              <th>商品款式</th>
-              <th>收件人</th>
-              <th class="num" style="width: 70px">數量</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (u of unmatchedOutbounds(); track u.outboundId; let i = $index) {
-              <tr>
-                <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-                <td>{{ u.productName }}</td>
-                <td>{{ u.productStyle || '空白' }}</td>
-                <td>{{ u.recipientName }}</td>
-                <td class="num">{{ u.quantity }}</td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <unmatched-outbounds-card
+      [outbounds]="unmatchedOutbounds()"
+      (gotoRequested)="goto.emit('products')"
+    />
   }
 
-  <div class="file-card" style="margin-top: 24px">
-    <div class="file-card-head">
-      <div>
-        <div class="eyebrow">LOG · 最近匯入</div>
-        <div class="file-card-title">出貨紀錄</div>
-      </div>
-      <div style="display: flex; gap: 8px; align-items: center">
-        <span class="tag">最近 8 筆</span>
-        <button class="btn btn-sm" (click)="goto.emit('orders')">
-          <span class="mat-icon sm">open_in_new</span>查看全部
-        </button>
-      </div>
-    </div>
-
-    @if (recentOutbounds().length === 0) {
-      <div class="file-card-body" style="text-align: center; padding: 48px 20px">
-        <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px">inbox</span>
-        <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
-          — 尚無出貨資料 —
-        </div>
-        <div class="margin-note" style="margin-top: 8px">請至「出貨匯入」上傳 Excel 檔案</div>
-        <button class="btn btn-primary btn-sm" style="margin-top: 16px" (click)="goto.emit('orders')">
-          <span class="mat-icon sm">upload</span>前往匯入
-        </button>
-      </div>
-    } @else {
-      <div class="file-card-body" style="padding-top: 0">
-        <table class="ledger-table">
-          <thead>
-            <tr>
-              <th class="row-num">No.</th>
-              <th>商品名稱</th>
-              <th>商品款式</th>
-              <th style="width: 120px">收件人</th>
-              <th class="num" style="width: 80px">數量</th>
-              <th style="width: 150px">匯入時間</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (o of recentOutbounds(); track o.id; let i = $index) {
-              <tr>
-                <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-                <td>{{ o.productName }}</td>
-                <td>{{ o.productStyle || '空白' }}</td>
-                <td>{{ o.recipientName }}</td>
-                <td class="num mono">{{ o.quantity }}</td>
-                <td class="mono" style="font-size: 11px; color: var(--ink-muted)">
-                  {{ formatImportedAt(o.importedAt) }}
-                </td>
-              </tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    }
-  </div>
+  <recent-outbounds-card [outbounds]="recentOutbounds()" (gotoRequested)="goto.emit('orders')" />
 
   <div class="grid-2 gap-6" style="margin-top: 24px">
-    <div class="file-card">
-      <div class="file-card-head">
-        <div>
-          <div class="eyebrow">庫存與配對</div>
-          <div class="file-card-title">目前概況</div>
-        </div>
-      </div>
-      <div class="file-card-body">
-        <div class="summary-row">
-          <span>庫存品項</span>
-          <span class="mono">{{ inventorySnapshots().length }} 項</span>
-        </div>
-        <div class="summary-row">
-          <span>出貨配對規則</span>
-          <span class="mono">{{ state().mappings.length }} 條</span>
-        </div>
-        <div class="summary-row">
-          <span>未配對出貨</span>
-          <span class="mono" [style.color]="unmatchedOutbounds().length > 0 ? 'var(--danger)' : 'var(--ink)'">
-            {{ unmatchedOutbounds().length }} 筆
-          </span>
-        </div>
-      </div>
-    </div>
+    <inventory-summary-card
+      [inventoryCount]="inventorySnapshots().length"
+      [mappingCount]="state().mappings.length"
+      [unmatchedCount]="unmatchedOutbounds().length"
+    />
 
-    <div class="file-card">
-      <div class="file-card-head">
-        <div>
-          <div class="eyebrow">進貨概況</div>
-          <div class="file-card-title">入庫紀錄</div>
-        </div>
-      </div>
-      <div class="file-card-body">
-        <div class="summary-row">
-          <span>進貨紀錄總筆數</span>
-          <span class="mono">{{ state().inbounds.length }} 筆</span>
-        </div>
-        <div class="summary-row">
-          <span>進貨總件數</span>
-          <span class="mono">{{ inboundTotalQty().toLocaleString() }} 件</span>
-        </div>
-      </div>
-    </div>
+    <inbound-summary-card [inboundCount]="state().inbounds.length" [totalQty]="inboundTotalQty()" />
   </div>
 
-  <div class="file-card" style="margin-top: 24px">
-    <div class="file-card-head">
-      <div>
-        <div class="eyebrow">INVENTORY · Snapshot</div>
-        <div class="file-card-title">庫存快照</div>
-      </div>
-      <span class="tag">{{ inventorySnapshots().length }} 項</span>
-    </div>
-
-    @if (inventorySnapshots().length === 0) {
-      <div class="file-card-body" style="text-align: center; padding: 48px 20px">
-        <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px">inventory_2</span>
-        <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
-          — 尚無商品資料 —
-        </div>
-      </div>
-    } @else {
-      <table class="ledger-table">
-        <thead>
-          <tr>
-            <th class="row-num">No.</th>
-            <th>商品名稱</th>
-            <th>商品款式</th>
-            <th class="num" style="width: 100px">進貨</th>
-            <th class="num" style="width: 100px">出貨扣除</th>
-            <th class="num" style="width: 100px">目前庫存</th>
-            <th class="num" style="width: 100px">安全庫存</th>
-            <th style="width: 90px">低庫存</th>
-          </tr>
-        </thead>
-        <tbody>
-          @for (item of inventorySnapshots(); track item.key; let i = $index) {
-            <tr>
-              <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-              <td style="font-weight: 600">{{ item.productName }}</td>
-              <td>{{ item.productStyle }}</td>
-              <td class="num mono">{{ item.inboundTotal.toLocaleString() }}</td>
-              <td class="num mono">{{ item.deductedTotal.toLocaleString() }}</td>
-              <td class="num mono">{{ item.onHand.toLocaleString() }}</td>
-              <td class="num mono">{{ state().settings.defaultLowStockThreshold.toLocaleString() }}</td>
-              <td>
-                <span class="tag dot" [class.red]="item.isLowStock" [class.green]="!item.isLowStock">
-                  {{ item.isLowStock ? '是' : '否' }}
-                </span>
-              </td>
-            </tr>
-          }
-        </tbody>
-      </table>
-    }
-  </div>
+  <inventory-snapshot-card
+    [items]="inventorySnapshots()"
+    [threshold]="state().settings.defaultLowStockThreshold"
+  />
 </div>

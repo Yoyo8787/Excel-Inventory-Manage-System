@@ -1,0 +1,109 @@
+<div class="file-card outbound-result-card">
+  <div class="file-card-head">
+    <div>
+      <div class="eyebrow">STEP 02 · 結果</div>
+      <div class="file-card-title">最新匯入摘要</div>
+    </div>
+  </div>
+  <div class="file-card-body outbound-result-body">
+    <div class="grid-2 gap-4">
+      <div class="result-card">
+        <div
+          style="
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--surface-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--mint-600);
+            flex-shrink: 0;
+          "
+        >
+          <span class="mat-icon">check_circle</span>
+        </div>
+        <div style="flex: 1">
+          <div class="eyebrow">成功匯入出貨</div>
+          <div
+            class="display-title"
+            style="font-size: 28px; line-height: 1.1; margin-top: 2px; color: var(--mint-600)"
+          >
+            {{ summary().importedCount }}
+          </div>
+          <div style="font-size: 12px; color: var(--ink-muted); margin-top: 4px">
+            已加入出貨紀錄
+          </div>
+        </div>
+      </div>
+
+      <div class="result-card">
+        <div
+          style="
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--surface-2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--danger);
+            flex-shrink: 0;
+          "
+        >
+          <span class="mat-icon">error</span>
+        </div>
+        <div style="flex: 1">
+          <div class="eyebrow">格式錯誤筆數</div>
+          <div
+            class="display-title"
+            style="font-size: 28px; line-height: 1.1; margin-top: 2px; color: var(--danger)"
+          >
+            {{ summary().errorCount }}
+          </div>
+          <div style="font-size: 12px; color: var(--ink-muted); margin-top: 4px">
+            欄位遺漏或型態不符
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @if (summary().errors.length) {
+      <div>
+        <div class="divider-ornament" style="margin: 4px 0 12px">
+          <span>錯誤明細 · ERROR DETAILS</span>
+        </div>
+        <div
+          style="
+            max-height: 240px;
+            overflow: auto;
+            border-radius: var(--r-sm);
+            border: 1px solid var(--surface-2);
+            position: relative;
+          "
+        >
+          <table class="ledger-table">
+            <thead style="position: sticky; top: 0; background: var(--surface); z-index: 1">
+              <tr>
+                <th style="width: 60px">列</th>
+                <th style="width: 120px">欄位</th>
+                <th>原因</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (error of summary().errors; track $index) {
+                <tr>
+                  <td class="mono">{{ error.rowNumber }}</td>
+                  <td>
+                    <span class="tag red">{{ error.field }}</span>
+                  </td>
+                  <td>{{ error.reason }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </div>
+    }
+  </div>
+</div>

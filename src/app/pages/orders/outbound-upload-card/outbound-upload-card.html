@@ -1,0 +1,23 @@
+<div class="file-card outbound-upload-card">
+  <div class="file-card-head">
+    <div>
+      <div class="eyebrow">IMPORT · 出貨匯入</div>
+      <div class="file-card-title">選擇出貨檔案</div>
+    </div>
+    <span class="doc-no">.xlsx / .xls</span>
+  </div>
+  <div class="file-card-body outbound-upload-body">
+    <app-dropzone
+      accept=".xlsx,.xls"
+      hint="或點選開啟檔案總管 · .xlsx / .xls"
+      [disabled]="busy()"
+      (fileSelected)="fileSelected.emit($event)"
+    />
+
+    <div class="mono" style="font-size: 11px; color: var(--ink-muted); line-height: 1.7">
+      · 首列需為欄位名稱<br />
+      · 必填欄位：商品名稱、數量、收件人名稱<br />
+      · 商品款式可空白；空白不會自動扣庫存
+    </div>
+  </div>
+</div>

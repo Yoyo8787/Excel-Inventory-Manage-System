@@ -1,111 +1,28 @@
 <div class="fade-in">
-  <!-- Masthead -->
   <div class="masthead">
     <div class="masthead-left">
       <div>
         <span class="eyebrow">Outbound — Import &amp; Reconcile</span>
-        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">出貨匯入</h2>
+        <h2 class="display-title" style="font-size: 26px; margin: 4px 0 0; font-weight: 600">
+          出貨匯入
+        </h2>
       </div>
     </div>
     <div class="masthead-right"><div class="doc-no">OUTBOUND</div></div>
   </div>
 
-  <div class="grid-3 gap-6" style="margin-top:22px;">
-    <!-- 匯入卡 -->
-    <div class="file-card">
-      <div class="file-card-head">
-        <div>
-          <div class="eyebrow">STEP 01 · 匯入</div>
-          <div class="file-card-title">選擇出貨檔案</div>
-        </div>
-        <span class="doc-no">.xlsx / .xls</span>
-      </div>
-      <div class="file-card-body" style="display:flex; flex-direction:column; gap:16px;">
-        <app-dropzone
-          accept=".xlsx,.xls"
-          hint="或點選開啟檔案總管 · .xlsx / .xls"
-          [disabled]="busy()"
-          (fileSelected)="handleOutboundWorkbookSelected($event)"
-        />
-
-        <div class="divider-ornament"><span>❦</span></div>
-        <div class="mono" style="font-size:11px; color:var(--ink-muted); line-height:1.7;">
-          · 首列需為欄位名稱<br>
-          · 必填欄位：商品名稱、數量、收件人名稱<br>
-          · 商品款式可空白；空白不會自動扣庫存
-        </div>
-      </div>
-    </div>
-
-    <!-- 匯入結果 -->
-    <div class="file-card" style="grid-column:span 2;">
-      <div class="file-card-head">
-        <div>
-          <div class="eyebrow">STEP 02 · 結果</div>
-          <div class="file-card-title">最新匯入摘要</div>
-        </div>
-      </div>
-      <div class="file-card-body">
-        <div class="grid-2 gap-4">
-          <div class="result-card">
-            <div style="width:40px; height:40px; border-radius:10px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--mint-600); flex-shrink:0;">
-              <span class="mat-icon">check_circle</span>
-            </div>
-            <div style="flex:1;">
-              <div class="eyebrow">成功匯入出貨</div>
-              <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--mint-600);">{{ importSummary().importedCount }}</div>
-              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">已加入出貨紀錄</div>
-            </div>
-          </div>
-          <div class="result-card">
-            <div style="width:40px; height:40px; border-radius:10px; background:var(--surface-2); display:flex; align-items:center; justify-content:center; color:var(--danger); flex-shrink:0;">
-              <span class="mat-icon">error</span>
-            </div>
-            <div style="flex:1;">
-              <div class="eyebrow">格式錯誤筆數</div>
-              <div class="display-title" style="font-size:28px; line-height:1.1; margin-top:2px; color:var(--danger);">{{ importSummary().errorCount }}</div>
-              <div style="font-size:12px; color:var(--ink-muted); margin-top:4px;">欄位遺漏或型態不符</div>
-            </div>
-          </div>
-        </div>
-
-        @if (importSummary().errors.length) {
-          <div class="divider-ornament" style="margin:20px 0 14px;"><span>錯誤明細 · ERROR DETAILS</span></div>
-          <table class="ledger-table">
-            <thead>
-              <tr>
-                <th style="width:60px;">列</th>
-                <th style="width:140px;">欄位</th>
-                <th>原因</th>
-              </tr>
-            </thead>
-            <tbody>
-              @for (e of importSummary().errors; track $index) {
-                <tr>
-                  <td class="mono">{{ e.rowNumber.toString().padStart(3,'0') }}</td>
-                  <td><span class="tag red">{{ e.field }}</span></td>
-                  <td style="color:var(--ink-soft);">{{ e.reason }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-        }
-      </div>
-    </div>
+  <div class="grid-3 gap-6 outbound-entry-grid" style="margin-top: 22px">
+    <outbound-upload-card [busy]="busy()" (fileSelected)="handleOutboundWorkbookSelected($event)" />
+    <outbound-result-card [summary]="importSummary()" />
   </div>
 
-  <!-- 出貨列表 -->
-  <div class="file-card" style="margin-top:24px;">
-    <div class="file-card-head">
-      <div>
-        <div class="eyebrow">LEDGER · 全部出貨</div>
-        <div class="file-card-title">出貨紀錄</div>
-      </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <span class="tag">{{ records().length }} 筆</span>
-        <span class="tag blue">{{ batches().length }} 批</span>
-      </div>
-    </div>
-    <outbound-table [records]="records()" (removeBatch)="removeBatch($event)" />
-  </div>
+  <outbound-history-card
+    [totalCount]="state().outbounds.length"
+    [batchCount]="batches().length"
+    [sections]="outboundBatchSections()"
+    [confirmImportedAt]="confirmImportedAt()"
+    (removeRequested)="requestRemoveBatch($event)"
+    (removeCanceled)="cancelRemoveBatch()"
+    (removeConfirmed)="removeBatch($event)"
+  />
 </div>

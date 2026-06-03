@@ -1,10 +1,26 @@
 import { Component, computed, inject, output } from '@angular/core';
 
 import { StoreService } from '../../core/services/store.service';
+import { DashboardStatCard } from './dashboard-stat-card/dashboard-stat-card';
+import type { DashboardStat } from './dashboard.types';
+import { InboundSummaryCard } from './inbound-summary-card/inbound-summary-card';
+import { InventorySnapshotCard } from './inventory-snapshot-card/inventory-snapshot-card';
+import { InventorySummaryCard } from './inventory-summary-card/inventory-summary-card';
+import { LowStockCard } from './low-stock-card/low-stock-card';
+import { RecentOutboundsCard } from './recent-outbounds-card/recent-outbounds-card';
+import { UnmatchedOutboundsCard } from './unmatched-outbounds-card/unmatched-outbounds-card';
 
 @Component({
   selector: 'page-dashboard',
-  imports: [],
+  imports: [
+    DashboardStatCard,
+    LowStockCard,
+    UnmatchedOutboundsCard,
+    RecentOutboundsCard,
+    InventorySummaryCard,
+    InboundSummaryCard,
+    InventorySnapshotCard,
+  ],
   templateUrl: './dashboard.page.html',
 })
 export class DashboardPage {
@@ -18,9 +34,11 @@ export class DashboardPage {
   readonly lowStockProducts = computed(() => this.#store.lowStockProducts());
   readonly unmatchedOutbounds = this.#store.unmatchedOutbounds;
 
-  readonly stats = computed(() => {
+  readonly stats = computed<DashboardStat[]>(() => {
     const s = this.state();
-    const todayOutbounds = s.outbounds.filter((record) => record.importedAt.slice(0, 10) === this.today);
+    const todayOutbounds = s.outbounds.filter(
+      (record) => record.importedAt.slice(0, 10) === this.today,
+    );
     const onHandTotal = this.inventorySnapshots().reduce((sum, item) => sum + item.onHand, 0);
 
     return [
@@ -52,14 +70,12 @@ export class DashboardPage {
   });
 
   readonly recentOutbounds = computed(() =>
-    [...this.state().outbounds].sort((a, b) => b.importedAt.localeCompare(a.importedAt)).slice(0, 8),
+    [...this.state().outbounds]
+      .sort((a, b) => b.importedAt.localeCompare(a.importedAt))
+      .slice(0, 8),
   );
 
   readonly inboundTotalQty = computed(() =>
     this.state().inbounds.reduce((s, r) => s + r.quantity, 0),
   );
-
-  formatImportedAt(iso: string): string {
-    return iso.replace('T', ' ').slice(0, 16);
-  }
 }

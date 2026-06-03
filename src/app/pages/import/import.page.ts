@@ -1,25 +1,17 @@
 import { Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
-import { MatFormFieldModule } from '@angular/material/form-field';
-import { MatInputModule } from '@angular/material/input';
 import { nanoid } from 'nanoid';
 
-import { Dropzone } from '../../components/dropzone/dropzone';
-import { InboundRecord } from '../../core/models';
+import type { InboundRecord } from '../../core/models';
 import { LayoutService, RecordImportService, StoreService } from '../../core/services';
 import { toErrorMessage } from '../../core/utils';
-
-interface InboundLine {
-  productName: string;
-  productStyle: string;
-  qty: number;
-}
-
-type InboundLineKey = 'productName' | 'productStyle' | 'qty';
+import { InboundHistoryCard } from './inbound-history-card/inbound-history-card';
+import { InboundManualCard } from './inbound-manual-card/inbound-manual-card';
+import { InboundUploadCard } from './inbound-upload-card/inbound-upload-card';
+import type { InboundBatchSection, InboundLine, InboundLineKey } from './import.types';
 
 @Component({
   selector: 'page-import',
-  imports: [FormsModule, MatFormFieldModule, MatInputModule, Dropzone],
+  imports: [InboundUploadCard, InboundManualCard, InboundHistoryCard],
   templateUrl: './import.page.html',
 })
 export class ImportPage {
@@ -42,8 +34,12 @@ export class ImportPage {
       a.localeCompare(b, 'zh-Hant'),
     ),
   );
-  readonly activeLineCount = computed(() => this.lines().filter(l => !this.#isBlankLine(l)).length);
-  readonly totalQty = computed(() => this.lines().reduce((s, l) => s + this.#positiveQty(l.qty), 0));
+  readonly activeLineCount = computed(
+    () => this.lines().filter((l) => !this.#isBlankLine(l)).length,
+  );
+  readonly totalQty = computed(() =>
+    this.lines().reduce((s, l) => s + this.#positiveQty(l.qty), 0),
+  );
   readonly importSummary = computed(() => {
     const result = this.state().lastImportResult;
     if (result?.type !== 'inbound') {
@@ -61,32 +57,43 @@ export class ImportPage {
     };
   });
 
-  readonly inboundHistory = computed(() =>
-    [...this.state().inbounds]
-      .sort((a, b) => b.importedAt.localeCompare(a.importedAt))
-      .slice(0, 30)
-  );
-
   readonly batches = this.#store.inboundBatches;
 
-  updateLine(i: number, key: InboundLineKey, v: string | number): void {
-    this.lines.update(ls => ls.map((l, idx) => {
-      if (idx !== i) return l;
+  readonly inboundBatchSections = computed<InboundBatchSection[]>(() => {
+    const recordsByImportedAt = new Map<string, InboundRecord[]>();
 
-      if (key === 'qty') {
-        return { ...l, qty: this.#toQuantity(v) };
-      }
+    for (const record of this.state().inbounds) {
+      const records = recordsByImportedAt.get(record.importedAt) ?? [];
+      records.push(record);
+      recordsByImportedAt.set(record.importedAt, records);
+    }
 
-      return { ...l, [key]: String(v) };
+    return this.batches().map((batch) => ({
+      ...batch,
+      records: recordsByImportedAt.get(batch.importedAt) ?? [],
     }));
+  });
+
+  updateLine(i: number, key: InboundLineKey, v: string | number): void {
+    this.lines.update((ls) =>
+      ls.map((l, idx) => {
+        if (idx !== i) return l;
+
+        if (key === 'qty') {
+          return { ...l, qty: this.#toQuantity(v) };
+        }
+
+        return { ...l, [key]: String(v) };
+      }),
+    );
   }
 
   addLine(): void {
-    this.lines.update(ls => [...ls, this.#blankLine()]);
+    this.lines.update((ls) => [...ls, this.#blankLine()]);
   }
 
   rmLine(i: number): void {
-    if (this.lines().length > 1) this.lines.update(ls => ls.filter((_, idx) => idx !== i));
+    if (this.lines().length > 1) this.lines.update((ls) => ls.filter((_, idx) => idx !== i));
   }
 
   submit(): void {
@@ -103,7 +110,9 @@ export class ImportPage {
       records,
       result: { type: 'inbound', importedCount: records.length, errorCount: 0, errors: [] },
     });
-    this.#layout.showMessage(`入庫完成：${records.length} 項，共 ${this.totalQty().toLocaleString()} 件`);
+    this.#layout.showMessage(
+      `入庫完成：${records.length} 項，共 ${this.totalQty().toLocaleString()} 件`,
+    );
     this.lines.set([this.#blankLine()]);
   }
 
@@ -117,7 +126,9 @@ export class ImportPage {
         this.#layout.showError(result.errors[0]?.reason ?? '匯入進貨失敗');
         return;
       }
-      this.#layout.showMessage(`進貨匯入完成：成功 ${result.importedCount}、錯誤 ${result.errorCount}`);
+      this.#layout.showMessage(
+        `進貨匯入完成：成功 ${result.importedCount}、錯誤 ${result.errorCount}`,
+      );
     } catch (error) {
       this.#layout.showError(toErrorMessage(error, '匯入進貨失敗'));
     } finally {
@@ -167,8 +178,8 @@ export class ImportPage {
 
   #toInboundRecords(importedAt: string): InboundRecord[] {
     return this.lines()
-      .filter(line => !this.#isBlankLine(line))
-      .map(line => ({
+      .filter((line) => !this.#isBlankLine(line))
+      .map((line) => ({
         id: nanoid(12),
         productName: line.productName.trim(),
         productStyle: line.productStyle.trim(),
@@ -178,9 +189,11 @@ export class ImportPage {
   }
 
   #isBlankLine(line: InboundLine): boolean {
-    return line.productName.trim().length === 0 &&
+    return (
+      line.productName.trim().length === 0 &&
       line.productStyle.trim().length === 0 &&
-      this.#positiveQty(line.qty) === 0;
+      this.#positiveQty(line.qty) === 0
+    );
   }
 
   #toQuantity(value: string | number): number {

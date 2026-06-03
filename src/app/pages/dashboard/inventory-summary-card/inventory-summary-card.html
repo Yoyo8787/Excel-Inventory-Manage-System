@@ -1,0 +1,24 @@
+<div class="file-card">
+  <div class="file-card-head">
+    <div>
+      <div class="eyebrow">庫存與配對</div>
+      <div class="file-card-title">目前概況</div>
+    </div>
+  </div>
+  <div class="file-card-body">
+    <div class="summary-row">
+      <span>庫存品項</span>
+      <span class="mono">{{ inventoryCount() }} 項</span>
+    </div>
+    <div class="summary-row">
+      <span>出貨配對規則</span>
+      <span class="mono">{{ mappingCount() }} 條</span>
+    </div>
+    <div class="summary-row">
+      <span>未配對出貨</span>
+      <span class="mono" [style.color]="unmatchedCount() > 0 ? 'var(--danger)' : 'var(--ink)'">
+        {{ unmatchedCount() }} 筆
+      </span>
+    </div>
+  </div>
+</div>
