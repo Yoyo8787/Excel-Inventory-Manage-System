@@ -79,16 +79,35 @@
   --color-on-error: #fff;
   --color-error-container: var(--danger-soft);
   --color-on-error-container: var(--danger);
+  --color-danger: var(--danger);
   --color-background: var(--mat-sys-surface);
   --color-on-background: var(--mat-sys-on-surface);
   --color-surface: var(--mat-sys-surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-on-surface: var(--mat-sys-on-surface);
   --color-surface-container: var(--mat-sys-surface-container);
   --color-surface-container-high: var(--mat-sys-surface-container-high);
   --color-outline: var(--mat-sys-outline);
+  --color-hairline: var(--hairline);
+  --color-ink: var(--ink);
+  --color-ink-soft: var(--ink-soft);
+  --color-ink-muted: var(--ink-muted);
+  --color-ink-faint: var(--ink-faint);
+  --color-mint-50: var(--mint-50);
+  --color-mint-100: var(--mint-100);
+  --color-mint-200: var(--mint-200);
+  --color-mint-300: var(--mint-300);
+  --color-mint-400: var(--mint-400);
+  --color-mint-500: var(--mint-500);
+  --color-mint-600: var(--mint-600);
+  --color-mint-700: var(--mint-700);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
 }
 
 /* ── Base ─────────────────────────────────────────────────── */
+@layer base {
 html,
 body {
   margin: 0;
@@ -103,8 +122,10 @@ body {
 * {
   box-sizing: border-box;
 }
+}
 
 /* ── Typography ───────────────────────────────────────────── */
+@layer components {
 .serif {
   font-family: var(--font-sans);
   font-weight: 600;
@@ -122,6 +143,26 @@ body {
   font-weight: 600;
   letter-spacing: -0.015em;
   color: var(--ink);
+}
+.page-title {
+  @apply mt-1 font-semibold;
+  font-size: 26px;
+}
+.init-title {
+  @apply mb-1;
+  font-size: 30px;
+}
+.mapping-dialog-title {
+  @apply mb-5;
+  font-size: 22px;
+}
+.summary-total {
+  font-size: 30px;
+}
+.stat-value {
+  @apply mt-1.5;
+  font-size: 34px;
+  line-height: 1.1;
 }
 
 .eyebrow {
@@ -200,6 +241,10 @@ span.mat-icon.lg {
 .sidenav-head {
   border-bottom: 1px solid var(--hairline);
   padding: 20px 22px;
+}
+.sidenav-brand-title {
+  @apply font-semibold text-ink;
+  font-size: 15px;
 }
 .sidenav-list {
   padding: 12px 10px;
@@ -722,6 +767,10 @@ span.mat-icon.lg {
   background: var(--mint-50);
   border-color: var(--mint-400);
 }
+.dropzone-title {
+  @apply mt-2 font-bold;
+  font-size: 15px;
+}
 
 /* ── Inbound page ─────────────────────────────────────────── */
 inbound-upload-card,
@@ -1142,7 +1191,53 @@ inventory-snapshot-card {
   color: var(--mint-600);
 }
 
+.empty-state {
+  @apply text-center px-5;
+}
+
+.empty-state-title {
+  @apply tracking-[0.15em] text-ink-faint;
+}
+
+.dashed-action {
+  @apply w-full justify-center border-dashed;
+}
+
+.selection-panel {
+  @apply rounded-(--r-sm) border border-outline bg-surface-2 px-3.5 py-2.5;
+}
+
+.mapping-rule-card {
+  @apply relative mb-2 rounded-(--r-sm) border border-dashed border-outline px-3 py-2.5;
+}
+
+.alert-card {
+  @apply border-t-3 border-t-error;
+  border-top-style: double;
+}
+
+.alert-card-head {
+  background: linear-gradient(180deg, rgba(184, 80, 80, 0.07), var(--surface));
+}
+
+.result-icon {
+  @apply flex size-10 shrink-0 items-center justify-center bg-surface-2;
+  border-radius: 10px;
+}
+
+.result-value {
+  @apply mt-0.5;
+  font-size: 28px;
+  line-height: 1.1;
+}
+
+.error-table-wrap {
+  @apply relative max-h-60 overflow-auto rounded-(--r-sm) border border-surface-2;
+}
+}
+
 /* ── Scrollbar ────────────────────────────────────────────── */
+@layer utilities {
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
@@ -1157,4 +1252,5 @@ inventory-snapshot-card {
 }
 ::-webkit-scrollbar-thumb:hover {
   background: var(--ink-faint);
+}
 }

@@ -1,4 +1,4 @@
-<div class="file-card" style="margin-top: 24px">
+<div class="file-card mt-6">
   <div class="file-card-head">
     <div>
       <div class="eyebrow">INVENTORY · Snapshot</div>
@@ -8,11 +8,11 @@
   </div>
 
   @if (items().length === 0) {
-    <div class="file-card-body" style="text-align: center; padding: 48px 20px">
-      <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px"
+    <div class="file-card-body empty-state py-12">
+      <span class="mat-icon lg mb-3 block text-ink-faint"
         >inventory_2</span
       >
-      <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
+      <div class="mono empty-state-title">
         — 尚無商品資料 —
       </div>
     </div>
@@ -24,18 +24,18 @@
             <th class="row-num">No.</th>
             <th>商品名稱</th>
             <th>商品款式</th>
-            <th class="num" style="width: 100px">進貨</th>
-            <th class="num" style="width: 100px">出貨扣除</th>
-            <th class="num" style="width: 100px">目前庫存</th>
-            <th class="num" style="width: 100px">安全庫存</th>
-            <th style="width: 90px">低庫存</th>
+            <th class="num w-25">進貨</th>
+            <th class="num w-25">出貨扣除</th>
+            <th class="num w-25">目前庫存</th>
+            <th class="num w-25">安全庫存</th>
+            <th class="w-22.5">低庫存</th>
           </tr>
         </thead>
         <tbody>
           @for (item of items(); track item.key; let i = $index) {
             <tr>
               <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-              <td style="font-weight: 600">{{ item.productName }}</td>
+              <td class="font-semibold">{{ item.productName }}</td>
               <td>{{ item.productStyle }}</td>
               <td class="num mono">{{ item.inboundTotal.toLocaleString() }}</td>
               <td class="num mono">{{ item.deductedTotal.toLocaleString() }}</td>

@@ -13,7 +13,7 @@
 
     <div class="inbound-batch-title">
       <div class="eyebrow">匯入時間</div>
-      <div class="mono" style="font-size: 13px; color: var(--ink)">
+      <div class="mono text-[13px] text-ink">
         {{ section().importedAt.slice(0, 16).replace('T', ' ') }}
       </div>
     </div>
@@ -50,14 +50,14 @@
           <th class="row-num">№</th>
           <th>商品名稱</th>
           <th>商品款式</th>
-          <th class="num" style="width: 90px">數量</th>
+          <th class="num w-22.5">數量</th>
         </tr>
       </thead>
       <tbody>
         @for (record of section().records; track record.id; let i = $index) {
           <tr>
             <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-            <td style="font-weight: 600">{{ record.productName }}</td>
+            <td class="font-semibold">{{ record.productName }}</td>
             <td>{{ record.productStyle }}</td>
             <td class="num mono">{{ record.quantity }}</td>
           </tr>

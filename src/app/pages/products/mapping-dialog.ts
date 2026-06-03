@@ -15,16 +15,14 @@ export interface MappingDialogData {
   selector: 'app-mapping-dialog',
   imports: [ReactiveFormsModule],
   template: `
-    <div
-      style="width:560px; max-width:92vw; background:var(--surface); border-radius:var(--r-lg); overflow:hidden;"
-    >
-      <div class="cls-stripe" style="height:4px;">
+    <div class="w-140 max-w-[92vw] overflow-hidden rounded-(--r-lg) bg-surface">
+      <div class="cls-stripe h-1">
         <span class="blue"></span><span class="green"></span><span class="ochre"></span
         ><span class="ink"></span>
       </div>
-      <div style="padding:26px 28px 24px;">
-        <div class="eyebrow" style="margin-bottom:6px;">MAPPING · 出貨別名 → 標準品項</div>
-        <h2 class="display-title" style="font-size:22px; margin:0 0 20px;">新增出貨配對</h2>
+      <div class="px-7 pb-6 pt-6.5">
+        <div class="eyebrow mb-1.5">MAPPING · 出貨別名 → 標準品項</div>
+        <h2 class="display-title mapping-dialog-title">新增出貨配對</h2>
 
         <form [formGroup]="form" (ngSubmit)="submit()">
           <datalist id="mapping-product-names">
@@ -61,14 +59,13 @@ export interface MappingDialogData {
           </div>
 
           @if (unmatchedSources.length > 0) {
-            <div style="margin:12px 0 2px;">
-              <div class="eyebrow" style="margin-bottom:8px;">待配對出貨</div>
-              <div style="display:flex; flex-wrap:wrap; gap:6px; max-height:120px; overflow:auto; ">
+            <div class="mb-0.5 mt-3">
+              <div class="eyebrow mb-2">待配對出貨</div>
+              <div class="flex max-h-30 flex-wrap gap-1.5 overflow-auto">
                 @for (source of unmatchedSources; track source.key) {
                   <button
                     type="button"
-                    class="btn btn-sm"
-                    style="font-size:11px;"
+                    class="btn btn-sm text-[11px]"
                     (click)="prefillSource(source)"
                   >
                     {{ source.productName }} / {{ source.productStyle || '空白' }}
@@ -78,7 +75,7 @@ export interface MappingDialogData {
             </div>
           }
 
-          <div class="divider-ornament" style="margin:18px 0 12px;">
+          <div class="divider-ornament mb-3 mt-4.5">
             <span>扣庫目標 · TARGETS</span>
           </div>
 
@@ -86,8 +83,7 @@ export interface MappingDialogData {
             @for (group of itemsArray.controls; track $index; let i = $index) {
               <div
                 [formGroupName]="i"
-                class="grid-3 gap-4"
-                style="align-items:end; margin-bottom:10px;"
+                class="grid-3 mb-2.5 items-end gap-4"
               >
                 <label>
                   <span class="label">標準商品名稱 *</span>
@@ -107,8 +103,8 @@ export interface MappingDialogData {
                     placeholder="進貨品項款式"
                   />
                 </label>
-                <div style="display:flex; gap:6px; align-items:end;">
-                  <label style="flex:1;">
+                <div class="flex items-end gap-1.5">
+                  <label class="flex-1">
                     <span class="label">倍率 *</span>
                     <input formControlName="quantity" type="number" min="1" step="1" />
                   </label>
@@ -124,16 +120,13 @@ export interface MappingDialogData {
 
           <button
             type="button"
-            class="btn btn-ghost btn-sm"
-            style="width:100%; justify-content:center; border-style:dashed;"
+            class="btn btn-ghost btn-sm dashed-action"
             (click)="addItem()"
           >
             <span class="mat-icon sm">add</span>新增扣庫目標
           </button>
 
-          <div
-            style="display:flex; justify-content:flex-end; gap:8px; margin-top:20px; border-top:1px solid var(--hairline); padding-top:16px;"
-          >
+          <div class="mt-5 flex justify-end gap-2 border-t border-outline pt-4">
             <button type="button" class="btn btn-ghost" (click)="dialogRef.close(null)">
               取消
             </button>

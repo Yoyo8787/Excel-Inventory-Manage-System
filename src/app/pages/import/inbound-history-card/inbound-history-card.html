@@ -1,4 +1,4 @@
-<div class="file-card" style="margin-top: 24px">
+<div class="file-card mt-6">
   <div class="file-card-head">
     <div>
       <div class="eyebrow">HISTORY · 近期進貨</div>
@@ -8,14 +8,14 @@
   </div>
 
   @if (sections().length === 0) {
-    <div class="file-card-body" style="text-align: center; padding: 48px 20px">
-      <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px"
+    <div class="file-card-body empty-state py-12">
+      <span class="mat-icon lg mb-3 block text-ink-faint"
         >inventory_2</span
       >
-      <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
+      <div class="mono empty-state-title">
         — 尚無進貨紀錄 —
       </div>
-      <div class="margin-note" style="margin-top: 8px">
+      <div class="margin-note mt-2">
         上傳進貨 Excel 或使用手動補登，即可建立進貨紀錄
       </div>
     </div>

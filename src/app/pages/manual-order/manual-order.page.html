@@ -3,15 +3,15 @@
     <div class="masthead-left">
       <div>
         <span class="eyebrow">Manual Entry — Outbound Form</span>
-        <h2 class="display-title" style="font-size:26px; margin:4px 0 0; font-weight:600;">手動出貨</h2>
+        <h2 class="display-title page-title">手動出貨</h2>
       </div>
     </div>
     <div class="masthead-right"><div class="doc-no">FORM / OUTBOUND</div></div>
   </div>
 
-  <div class="grid-3 gap-6" style="margin-top:22px;">
+  <div class="grid-3 gap-6 mt-5.5">
     <!-- 出貨表單 -->
-    <div class="file-card" style="grid-column:span 2;">
+    <div class="file-card col-span-2">
       <div class="file-card-head">
         <div>
           <div class="eyebrow">FORM A · 出貨單</div>
@@ -20,14 +20,14 @@
       </div>
       <div class="file-card-body">
         <div class="grid-2 gap-6">
-          <mat-form-field appearance="outline" style="width:100%;">
+          <mat-form-field appearance="outline" class="w-full">
             <mat-label>收件人名稱</mat-label>
             <input matInput placeholder="林小姐"
                    [value]="recipientName()" (input)="recipientName.set($any($event.target).value)" />
           </mat-form-field>
         </div>
 
-        <div class="divider-ornament" style="margin:22px 0 10px;"><span>項次 · LINE ITEMS</span></div>
+        <div class="divider-ornament mb-2.5 mt-5.5"><span>項次 · LINE ITEMS</span></div>
 
         <datalist id="manual-product-name-options">
           @for (name of productNameOptions(); track name) {
@@ -46,8 +46,8 @@
               <th class="row-num">#</th>
               <th>商品名稱</th>
               <th>商品款式</th>
-              <th class="num" style="width:80px;">數量</th>
-              <th style="width:40px;"></th>
+              <th class="num w-20">數量</th>
+              <th class="w-10"></th>
             </tr>
           </thead>
           <tbody>
@@ -63,7 +63,7 @@
                          [value]="l.productStyle" (input)="updateLine(i,'productStyle',$any($event.target).value)" />
                 </td>
                 <td class="num">
-                  <input class="inline-input mono" type="number" style="text-align:right;"
+                  <input class="inline-input mono text-right" type="number"
                          min="1" step="1"
                          [value]="l.qty" (input)="updateLine(i,'qty',+$any($event.target).value||0)" />
                 </td>
@@ -78,7 +78,7 @@
             }
           </tbody>
         </table>
-        <button class="btn btn-ghost btn-sm" style="margin-top:10px;" (click)="addLine()">
+        <button class="btn btn-ghost btn-sm mt-2.5" (click)="addLine()">
           <span class="mat-icon sm">add</span>新增項次
         </button>
       </div>
@@ -95,20 +95,20 @@
       <div class="file-card-body">
         <div class="summary-row"><span>收件人</span><span class="mono">{{ recipientName() || '—' }}</span></div>
         <div class="summary-row"><span>項次數</span><span class="mono">{{ activeLineCount() }} 項</span></div>
-        <div class="divider-ornament" style="margin:14px 0;"><span>❦</span></div>
-        <div class="summary-row" style="align-items:baseline;">
-          <span class="serif" style="font-size:14px;">出貨數量</span>
-          <span class="display-title" style="font-size:30px; color:var(--danger);">{{ totalQty().toLocaleString() }}</span>
+        <div class="divider-ornament my-3.5"><span>❦</span></div>
+        <div class="summary-row items-baseline">
+          <span class="serif text-sm">出貨數量</span>
+          <span class="display-title summary-total text-error">{{ totalQty().toLocaleString() }}</span>
         </div>
 
-        <div style="margin-top:20px;">
-          <button class="btn btn-primary" style="width:100%; justify-content:center; padding:10px;" (click)="submit()">
+        <div class="mt-5">
+          <button class="btn btn-primary w-full justify-center p-2.5" (click)="submit()">
             <span class="mat-icon sm">verified</span>送出出貨
           </button>
         </div>
 
-        <div style="margin-top:22px; display:flex; align-items:center; justify-content:center;">
-          <div class="stamp round" style="width:92px; height:92px; font-size:12px; flex-direction:column;">
+        <div class="mt-5.5 flex items-center justify-center">
+          <div class="stamp round flex-col size-23 text-xs">
             手動<br>出貨<br>MANUAL
           </div>
         </div>

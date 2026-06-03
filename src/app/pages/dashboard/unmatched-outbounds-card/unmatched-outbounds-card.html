@@ -1,13 +1,10 @@
-<div class="file-card" style="margin-top: 24px; border-top: 3px double var(--danger)">
-  <div
-    class="file-card-head"
-    style="background: linear-gradient(180deg, rgba(184, 80, 80, 0.07), var(--surface))"
-  >
+<div class="file-card alert-card mt-6">
+  <div class="file-card-head alert-card-head">
     <div>
-      <div class="eyebrow" style="color: var(--danger)">ALERT · 配對警示</div>
-      <div class="file-card-title" style="font-size: 20px">
+      <div class="eyebrow text-error">ALERT · 配對警示</div>
+      <div class="file-card-title text-xl">
         未配對出貨
-        <span class="mono" style="font-size: 13px; color: var(--danger); margin-left: 8px">
+        <span class="mono ml-2 text-[13px] text-error">
           {{ outbounds().length }} rows
         </span>
       </div>
@@ -16,7 +13,7 @@
       <span class="mat-icon sm">link</span>前往配對
     </button>
   </div>
-  <div class="file-card-body" style="padding: 0">
+  <div class="file-card-body p-0">
     <div class="dashboard-table-scroll dashboard-table-scroll-sm">
       <table class="ledger-table">
         <thead>
@@ -25,7 +22,7 @@
             <th>商品名稱</th>
             <th>商品款式</th>
             <th>收件人</th>
-            <th class="num" style="width: 70px">數量</th>
+            <th class="num w-17.5">數量</th>
           </tr>
         </thead>
         <tbody>

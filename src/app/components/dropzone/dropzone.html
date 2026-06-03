@@ -1,8 +1,8 @@
 <div
   class="dropzone"
   [class.drag-over]="isDragOver()"
-  [style.pointer-events]="disabled() ? 'none' : 'auto'"
-  [style.opacity]="disabled() ? '0.6' : '1'"
+  [class.pointer-events-none]="disabled()"
+  [class.opacity-60]="disabled()"
   (click)="!disabled() && fileInput.click()"
   (dragover)="handleDragOver($event)"
   (dragleave)="handleDragLeave()"
@@ -17,9 +17,9 @@
     (change)="handleFileChange($event)"
   />
 
-  <span class="mat-icon lg" style="color:var(--mint-500);">cloud_upload</span>
-  <div class="serif" style="font-size:15px; font-weight:700; margin-top:8px;">拖曳檔案至此</div>
-  <div class="mono" style="font-size:11px; color:var(--ink-muted); margin-top:4px; letter-spacing:0.1em;">
+  <span class="mat-icon lg text-primary">cloud_upload</span>
+  <div class="serif dropzone-title">拖曳檔案至此</div>
+  <div class="mono mt-1 text-[11px] tracking-[0.1em] text-ink-muted">
     @if (selectedFileName()) {
       已選擇：{{ selectedFileName() }}
     } @else if (isDragOver()) {
@@ -29,7 +29,7 @@
     }
   </div>
 
-  <div style="position:absolute; top:8px; left:10px; font-family:var(--font-mono); font-size:9px; color:var(--ink-faint); letter-spacing:0.2em;">
+  <div class="absolute left-2.5 top-2 font-mono text-[9px] tracking-[0.2em] text-ink-faint">
     DROP ZONE
   </div>
 </div>

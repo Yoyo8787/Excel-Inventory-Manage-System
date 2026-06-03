@@ -16,60 +16,30 @@
 
     <div class="grid-2 gap-4">
       <div class="result-card">
-        <div
-          style="
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: var(--surface-2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--mint-600);
-            flex-shrink: 0;
-          "
-        >
+        <div class="result-icon text-primary">
           <span class="mat-icon">check_circle</span>
         </div>
-        <div style="flex: 1">
+        <div class="flex-1">
           <div class="eyebrow">成功匯入進貨</div>
-          <div
-            class="display-title"
-            style="font-size: 28px; line-height: 1.1; margin-top: 2px; color: var(--mint-600)"
-          >
+          <div class="display-title result-value text-primary">
             {{ summary().importedCount }}
           </div>
-          <div style="font-size: 12px; color: var(--ink-muted); margin-top: 4px">
+          <div class="mt-1 text-xs text-ink-muted">
             已加入進貨紀錄
           </div>
         </div>
       </div>
 
       <div class="result-card">
-        <div
-          style="
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: var(--surface-2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--danger);
-            flex-shrink: 0;
-          "
-        >
+        <div class="result-icon text-error">
           <span class="mat-icon">error</span>
         </div>
-        <div style="flex: 1">
+        <div class="flex-1">
           <div class="eyebrow">格式錯誤筆數</div>
-          <div
-            class="display-title"
-            style="font-size: 28px; line-height: 1.1; margin-top: 2px; color: var(--danger)"
-          >
+          <div class="display-title result-value text-error">
             {{ summary().errorCount }}
           </div>
-          <div style="font-size: 12px; color: var(--ink-muted); margin-top: 4px">
+          <div class="mt-1 text-xs text-ink-muted">
             欄位遺漏或型態不符
           </div>
         </div>
@@ -78,23 +48,15 @@
 
     @if (summary().errors.length) {
       <div>
-        <div class="divider-ornament" style="margin: 4px 0 12px">
+        <div class="divider-ornament mb-3 mt-1">
           <span>錯誤明細 · ERROR DETAILS</span>
         </div>
-        <div
-          style="
-            max-height: 240px;
-            overflow: auto;
-            border-radius: var(--r-md);
-            border: 1px solid var(--surface-2);
-            position: relative;
-          "
-        >
+        <div class="error-table-wrap">
           <table class="ledger-table">
-            <thead style="position: sticky; top: 0; background: var(--surface); z-index: 1">
+            <thead class="sticky top-0 z-1 bg-surface">
               <tr>
-                <th style="width: 60px">列</th>
-                <th style="width: 120px">欄位</th>
+                <th class="w-15">列</th>
+                <th class="w-30">欄位</th>
                 <th>原因</th>
               </tr>
             </thead>

@@ -1,4 +1,4 @@
-<div class="file-card" style="margin-top: 24px">
+<div class="file-card mt-6">
   <div class="file-card-head">
     <div>
       <div class="eyebrow">LEDGER · 全部出貨</div>
@@ -8,14 +8,14 @@
   </div>
 
   @if (sections().length === 0) {
-    <div class="file-card-body" style="text-align: center; padding: 48px 20px">
-      <span class="mat-icon lg" style="color: var(--ink-faint); display: block; margin-bottom: 12px"
+    <div class="file-card-body empty-state py-12">
+      <span class="mat-icon lg mb-3 block text-ink-faint"
         >local_shipping</span
       >
-      <div class="mono" style="letter-spacing: 0.15em; color: var(--ink-faint)">
+      <div class="mono empty-state-title">
         — 尚無出貨紀錄 —
       </div>
-      <div class="margin-note" style="margin-top: 8px">上傳出貨 Excel 即可建立出貨紀錄</div>
+      <div class="margin-note mt-2">上傳出貨 Excel 即可建立出貨紀錄</div>
     </div>
   } @else {
     <div class="file-card-body outbound-batch-list">

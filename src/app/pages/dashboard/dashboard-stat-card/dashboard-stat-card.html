@@ -1,17 +1,17 @@
 <div class="file-card stat-card">
-  <div class="cls-stripe" style="height: 3px">
+  <div class="cls-stripe h-0.75">
     <span [class]="stat().tone === 'red' ? 'red' : 'ink'"></span>
     <span [class]="stat().tone === 'ochre' ? 'ochre' : 'ink'"></span>
     <span [class]="stat().tone === 'green' ? 'green' : 'ink'"></span>
     <span [class]="stat().tone === 'blue' ? 'blue' : 'ink'"></span>
   </div>
-  <div style="padding: 16px 18px">
+  <div class="px-4.5 py-4">
     <div class="eyebrow">{{ stat().label }}</div>
-    <div class="display-title" style="font-size: 34px; line-height: 1.1; margin-top: 6px">
+    <div class="display-title stat-value">
       {{ stat().valueStr }}
     </div>
-    <div style="margin-top: 14px">
-      <div class="mono" style="font-size: 11px; color: var(--ink-muted)">{{ stat().sub }}</div>
+    <div class="mt-3.5">
+      <div class="mono text-[11px] text-ink-muted">{{ stat().sub }}</div>
     </div>
   </div>
 </div>

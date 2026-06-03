@@ -23,8 +23,8 @@
         <tr>
           <th class="row-num">#</th>
           <th>商品</th>
-          <th class="num" style="width: 72px">數量</th>
-          <th style="width: 36px"></th>
+          <th class="num w-18">數量</th>
+          <th class="w-9"></th>
         </tr>
       </thead>
       <tbody>
@@ -61,11 +61,10 @@
             </td>
             <td class="num">
               <input
-                class="inline-input mono"
+                class="inline-input mono text-right"
                 type="number"
                 min="0"
                 step="1"
-                style="text-align: right"
                 [value]="line.qty"
                 (input)="
                   lineUpdated.emit({ index: i, key: 'qty', value: +$any($event.target).value || 0 })
@@ -84,16 +83,16 @@
       </tbody>
     </table>
 
-    <div class="summary-row" style="margin-top: 10px">
+    <div class="summary-row mt-2.5">
       <span>合計數量</span>
       <span class="mono">{{ totalQty().toLocaleString() }} 件</span>
     </div>
 
-    <div style="display: flex; gap: 8px; margin-top: 12px">
+    <div class="mt-3 flex gap-2">
       <button class="btn btn-ghost btn-sm" (click)="lineAdded.emit()">
         <span class="mat-icon sm">add</span>新增項次
       </button>
-      <button class="btn btn-primary btn-sm" style="margin-left: auto" (click)="submitted.emit()">
+      <button class="btn btn-primary btn-sm ml-auto" (click)="submitted.emit()">
         <span class="mat-icon sm">verified</span>送出入庫
       </button>
     </div>

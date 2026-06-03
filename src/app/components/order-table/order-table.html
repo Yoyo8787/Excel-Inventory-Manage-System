@@ -1,49 +1,47 @@
 @if (!records().length) {
-  <div style="padding:60px 20px; text-align:center;">
-    <div class="mono" style="letter-spacing:0.2em; color:var(--ink-faint);">— 尚無匯入記錄 —</div>
-    <div class="margin-note" style="margin-top:10px;">請先上傳檔案</div>
+  <div class="empty-state py-15">
+    <div class="mono empty-state-title">— 尚無匯入記錄 —</div>
+    <div class="margin-note mt-2.5">請先上傳檔案</div>
   </div>
 } @else {
   <table class="ledger-table">
     <thead>
       <tr>
         <th class="row-num">No.</th>
-        <th style="width:160px;">匯入時間</th>
-        <th style="width:160px;">收件人</th>
+        <th class="w-40">匯入時間</th>
+        <th class="w-40">收件人</th>
         <th>商品名稱</th>
         <th>商品款式</th>
-        <th class="num" style="width:90px;">數量</th>
-        <th style="width:88px;"></th>
+        <th class="num w-22.5">數量</th>
+        <th class="w-22"></th>
       </tr>
     </thead>
     <tbody>
       @for (record of records(); track record.id; let i = $index) {
         <tr>
           <td class="row-num">{{ (i + 1).toString().padStart(3, '0') }}</td>
-          <td class="mono" style="font-size:11.5px; color:var(--ink-muted);">
+          <td class="mono text-[11.5px] text-ink-muted">
             {{ record.importedAt | date:'yyyy-MM-dd HH:mm' }}
           </td>
-          <td style="font-weight:600;">{{ record.recipientName }}</td>
+          <td class="font-semibold">{{ record.recipientName }}</td>
           <td>{{ record.productName }}</td>
           <td>
             @if (record.productStyle) {
               {{ record.productStyle }}
             } @else {
-              <span style="color:var(--ink-faint);">（空白）</span>
+              <span class="text-ink-faint">（空白）</span>
             }
           </td>
           <td class="num mono">{{ record.quantity }}</td>
           <td>
             @if (confirmImportedAt() === record.importedAt) {
-              <div style="display:flex; gap:4px; align-items:center; justify-content:flex-end;">
+              <div class="flex items-center justify-end gap-1">
                 <button
-                  class="btn btn-sm"
-                  style="background:var(--danger); color:#fff; border-color:var(--danger); padding:3px 8px; font-size:11px;"
+                  class="btn btn-danger px-2 py-0.75 text-[11px]"
                   (click)="confirmRemove(record.importedAt)"
                 >確認</button>
                 <button
-                  class="btn btn-sm"
-                  style="padding:3px 8px; font-size:11px;"
+                  class="btn px-2 py-0.75 text-[11px]"
                   (click)="cancelRemove()"
                 >取消</button>
               </div>
@@ -53,7 +51,7 @@
                 title="撤回同批匯入"
                 (click)="requestRemove(record.importedAt)"
               >
-                <span class="mat-icon sm" style="color:var(--ink-faint);">undo</span>
+                <span class="mat-icon sm text-ink-faint">undo</span>
               </button>
             }
           </td>

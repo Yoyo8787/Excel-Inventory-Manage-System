@@ -16,7 +16,7 @@
     </div>
     <div class="summary-row">
       <span>未配對出貨</span>
-      <span class="mono" [style.color]="unmatchedCount() > 0 ? 'var(--danger)' : 'var(--ink)'">
+      <span class="mono" [class.text-error]="unmatchedCount() > 0">
         {{ unmatchedCount() }} 筆
       </span>
     </div>
